@@ -128,6 +128,17 @@
     }
 }
 
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes kiosco-scan {
   0%   { top: 16px; opacity: 1; }
   48%  { opacity: 0.6; }
