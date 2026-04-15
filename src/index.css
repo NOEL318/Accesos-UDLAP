@@ -127,3 +127,24 @@
     @apply font-sans;
     }
 }
+
+@keyframes kiosco-scan {
+  0%   { top: 16px; opacity: 1; }
+  48%  { opacity: 0.6; }
+  50%  { top: calc(100% - 16px); opacity: 0.6; }
+  100% { top: 16px; opacity: 1; }
+}
+
+@keyframes kiosco-scan-fast {
+  0%   { top: 20px; }
+  50%  { top: calc(100% - 20px); }
+  100% { top: 20px; }
+}
+
+.kiosco-scanline {
+  animation: kiosco-scan 2.6s ease-in-out infinite;
+}
+
+.kiosco-scanline-fast {
+  animation: kiosco-scan-fast 0.9s linear infinite;
+}

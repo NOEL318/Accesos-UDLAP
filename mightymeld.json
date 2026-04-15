@@ -1,0 +1,10 @@
+{
+  "run_prettier": true,
+  "include": [
+    "src"
+  ],
+  "web_server_url": "http://localhost:5173",
+  "editor": "idea",
+  "run": "npm run dev",
+  "tailwind": true
+}
