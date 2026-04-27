@@ -23,6 +23,17 @@ import { PerfilScreen } from "@/screens/movil/PerfilScreen"
 import { ComedorScreen } from "@/screens/movil/ComedorScreen"
 import { BibliotecaScreen } from "@/screens/movil/BibliotecaScreen"
 
+// ── iPad screens ───────────────────────────────────────────────────────────
+import { IpadLayout } from "@/screens/ipad/IpadLayout"
+import { LoginScreen as IpadLoginScreen } from "@/screens/ipad/LoginScreen"
+import { DashboardScreen as IpadDashboardScreen } from "@/screens/ipad/DashboardScreen"
+import { PuntoControlScreen } from "@/screens/ipad/PuntoControlScreen"
+import { SalidasScreen } from "@/screens/ipad/SalidasScreen"
+import { VehiculosScreen } from "@/screens/ipad/VehiculosScreen"
+import { MultasScreen } from "@/screens/ipad/MultasScreen"
+import { HistorialScreen } from "@/screens/ipad/HistorialScreen"
+import { AlertasScreen } from "@/screens/ipad/AlertasScreen"
+
 // ── Kiosco type (kept for existing screens) ────────────────────────────────
 export type Screen = "principal" | "registro-alternativo" | "captura-ine"
 
@@ -62,11 +73,20 @@ export function App() {
           <Route path="biblioteca" element={<BibliotecaScreen />} />
         </Route>
 
+        {/* ── iPad Seguridad ──────────────────────────── */}
+        <Route path="/ipad" element={<IpadLayout />}>
+          <Route index element={<Navigate to="/ipad/dashboard" replace />} />
+          <Route path="login" element={<IpadLoginScreen />} />
+          <Route path="dashboard" element={<IpadDashboardScreen />} />
+          <Route path="acceso" element={<PuntoControlScreen />} />
+          <Route path="salidas" element={<SalidasScreen />} />
+          <Route path="vehiculos" element={<VehiculosScreen />} />
+          <Route path="multas" element={<MultasScreen />} />
+          <Route path="historial" element={<HistorialScreen />} />
+          <Route path="alertas" element={<AlertasScreen />} />
+        </Route>
+
         {/* ── Coming soon ─────────────────────────────── */}
-        <Route
-          path="/ipad"
-          element={<ComingSoon title="iPad" subtitle="Tableta Operativa" type="ipad" />}
-        />
         <Route
           path="/colegios"
           element={
