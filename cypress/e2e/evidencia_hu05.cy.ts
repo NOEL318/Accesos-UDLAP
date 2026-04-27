@@ -1,0 +1,1 @@
+describe('Prueba HU-05', () => { it('Carga la pagina', () => { cy.visit('http://localhost:5173') }) })
