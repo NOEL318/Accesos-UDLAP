@@ -24,6 +24,7 @@ const config = {
   },
 }
 
+// pantalla placeholder para módulos en desarrollo (ipad o colegios)
 export function ComingSoon({ title, subtitle, type }: Props) {
   const navigate = useNavigate()
   const { Icon, accent, glow, description } = config[type]

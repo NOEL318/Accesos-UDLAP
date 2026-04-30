@@ -6,7 +6,9 @@ interface Bar {
   valor: number
 }
 
+// grafica de barras del flujo vehicular por franja horaria
 export function FlujoBarChart({ data }: { data: Bar[] }) {
+  // calcula el valor maximo para escalar las barras
   const max = useMemo(() => Math.max(...data.map((d) => d.valor), 1), [data])
   return (
     <div>

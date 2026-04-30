@@ -11,6 +11,7 @@ interface Props {
   contentClassName?: string
 }
 
+// card contenedora con titulo, icono y accion opcional para secciones del iPad
 export function SectionCard({ title, icon, action, children, className, contentClassName }: Props) {
   return (
     <Card className={cn("gap-4", className)}>

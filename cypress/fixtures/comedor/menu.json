@@ -1,0 +1,5 @@
+[
+  { "id": "m1", "nombre": "Bowl Mediterráneo", "precio": 95, "descripcion": "Quinoa, garbanzos, pepino, tomate cherry", "categoria": "principal", "icon": "salad" },
+  { "id": "m2", "nombre": "Hamburguesa UDLAP", "precio": 110, "descripcion": "Carne 150g, queso, papas", "categoria": "principal", "icon": "burger" },
+  { "id": "m3", "nombre": "Smoothie Verde", "precio": 55, "descripcion": "Espinaca, plátano, manzana", "categoria": "vegano", "icon": "smoothie" }
+]

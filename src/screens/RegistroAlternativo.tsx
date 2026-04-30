@@ -25,6 +25,7 @@ interface Props {
   onNavigate: (screen: Screen) => void
 }
 
+// pantalla del quiosco con opciones de registro alterno cuando el visitante no tiene credencial
 export function RegistroAlternativo({ onNavigate }: Props) {
   return (
     <div className="flex flex-col h-screen bg-[#f4f5f7] overflow-hidden">

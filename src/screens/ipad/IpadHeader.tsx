@@ -9,6 +9,7 @@ interface Props {
   searchPlaceholder?: string
 }
 
+// header superior del iPad con buscador, hora actual y datos del oficial logueado
 export function IpadHeader({ onMenuClick, searchPlaceholder = "Buscar vehículo, oficial o reporte..." }: Props) {
   const { officer } = useIpadSession()
   const now = new Date()

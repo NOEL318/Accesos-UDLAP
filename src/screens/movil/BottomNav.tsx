@@ -10,6 +10,7 @@ const tabs = [
   { label: "Perfil", icon: User, path: "/movil/perfil" },
 ]
 
+// barra de navegacion inferior fija con las pestanas principales del movil
 export function BottomNav() {
   const { pathname } = useLocation()
 

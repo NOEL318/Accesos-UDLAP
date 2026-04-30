@@ -1,25 +1,50 @@
 import { useNavigate, useParams } from "react-router-dom"
 import { useState } from "react"
-import { ArrowLeft, MapPin, QrCode } from "lucide-react"
+import { ArrowLeft, MapPin, QrCode, Car, PersonStanding, User, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { visitasMock } from "./data"
 import { cn } from "@/lib/utils"
 import { QrCode as QrCodeSvg } from "./QrCode"
+import { QRCodeSVG } from "qrcode.react"
+import { useVisita } from "./hooks/useVisita"
+import type { VisitaStatus } from "@/lib/types"
 
-const statusConfig = {
-  activo: { label: "ACTIVO", color: "#16a34a", bg: "#f0fdf4" },
-  expirado: { label: "EXPIRADO", color: "#6b7280", bg: "#f9fafb" },
-  programado: { label: "PROGRAMADO", color: "#ea580c", bg: "#fff7ed" },
+const statusConfig: Record<VisitaStatus, { label: string; color: string; bg: string }> = {
+  activa: { label: "ACTIVA", color: "#16a34a", bg: "#f0fdf4" },
+  programada: { label: "PROGRAMADA", color: "#ea580c", bg: "#fff7ed" },
+  expirada: { label: "EXPIRADA", color: "#6b7280", bg: "#f9fafb" },
+  cancelada: { label: "CANCELADA", color: "#9ca3af", bg: "#f3f4f6" },
 }
 
+// formatea una fecha ISO como fecha y hora corta para mostrar en UI
+function formatFechaHora(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("es-MX", {
+      dateStyle: "short",
+      timeStyle: "short",
+    })
+  } catch {
+    return iso
+  }
+}
+
+// pantalla con el detalle de una visita y opcion de cancelar o ver el QR
 export function DetallesVisitaScreen() {
   const navigate = useNavigate()
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
+  const { data: visita, loading, error, cancel } = useVisita(id)
   const [showQr, setShowQr] = useState(false)
 
-  const visita = visitasMock.find((v) => v.id === id) ?? visitasMock[0]
+  if (loading) return <div className="p-6 text-sm text-gray-500">Cargando…</div>
+  if (error || !visita) return <div className="p-6 text-sm text-red-600">{error ?? "No encontrada"}</div>
+
   const st = statusConfig[visita.status]
+  const tipo = visita.invitado.categoria === "personal" ? "personal" : "visita"
+  const modoEntrada = visita.tipoAcceso === "vehicular" ? "automovil" : "peatonal"
+  const fechaStr = formatFechaHora(visita.fechaHora)
+  const fechaParts = fechaStr.split(", ")
+  const fechaSolo = fechaParts[0] ?? fechaStr
+  const horaSolo = fechaParts[1] ?? ""
 
   return (
     <>
@@ -58,9 +83,9 @@ export function DetallesVisitaScreen() {
                     key={t}
                     className={cn(
                       "flex-1 py-2.5 text-sm font-bold text-center",
-                      visita.tipo === t ? "text-white" : "text-gray-400 bg-gray-50"
+                      tipo === t ? "text-white" : "text-gray-400 bg-gray-50"
                     )}
-                    style={visita.tipo === t ? { background: "#ea580c" } : {}}
+                    style={tipo === t ? { background: "#ea580c" } : {}}
                   >
                     {t === "visita" ? "De visita" : "Personal"}
                   </div>
@@ -73,7 +98,7 @@ export function DetallesVisitaScreen() {
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                 Nombre del visitante
               </p>
-              <p className="text-sm font-semibold text-gray-800">{visita.nombre}</p>
+              <p className="text-sm font-semibold text-gray-800">{visita.invitado.nombre}</p>
             </div>
 
             {/* Fecha + Hora */}
@@ -82,13 +107,13 @@ export function DetallesVisitaScreen() {
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                   Fecha
                 </p>
-                <p className="text-sm font-semibold text-gray-800">{visita.fecha}</p>
+                <p className="text-sm font-semibold text-gray-800">{fechaSolo}</p>
               </div>
               <div>
                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
                   Hora estimada
                 </p>
-                <p className="text-sm font-semibold text-gray-800">{visita.hora}</p>
+                <p className="text-sm font-semibold text-gray-800">{horaSolo}</p>
               </div>
             </div>
 
@@ -105,6 +130,15 @@ export function DetallesVisitaScreen() {
                 />
               </div>
             </div>
+
+            {visita.comentarios && (
+              <div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+                  Comentarios
+                </p>
+                <p className="text-sm text-gray-700">{visita.comentarios}</p>
+              </div>
+            )}
           </div>
 
           {/* Configuración de Acceso */}
@@ -127,17 +161,18 @@ export function DetallesVisitaScreen() {
               </p>
               <div className="flex rounded-xl overflow-hidden border border-gray-200">
                 {([
-                  { value: "automovil", label: "🚗 Automóvil" },
-                  { value: "peatonal", label: "🚶 Peatonal" },
-                ] as const).map(({ value, label }) => (
+                  { value: "automovil", label: "Automóvil", icon: "car" },
+                  { value: "peatonal", label: "Peatonal", icon: "walk" },
+                ] as const).map(({ value, label, icon }) => (
                   <div
                     key={value}
                     className={cn(
-                      "flex-1 py-2.5 text-sm font-bold text-center",
-                      visita.modoEntrada === value ? "text-white" : "text-gray-400 bg-gray-50"
+                      "flex-1 py-2.5 text-sm font-bold text-center flex items-center justify-center gap-2",
+                      modoEntrada === value ? "text-white" : "text-gray-400 bg-gray-50"
                     )}
-                    style={visita.modoEntrada === value ? { background: "#ea580c" } : {}}
+                    style={modoEntrada === value ? { background: "#ea580c" } : {}}
                   >
+                    {icon === "car" ? <Car size={16} /> : <PersonStanding size={16} />}
                     {label}
                   </div>
                 ))}
@@ -149,7 +184,7 @@ export function DetallesVisitaScreen() {
             </p>
           </div>
 
-          {/* Action button */}
+          {/* Action buttons */}
           <Button
             onClick={() => setShowQr(true)}
             className="w-full h-13 rounded-xl text-white font-bold text-base gap-3"
@@ -158,6 +193,19 @@ export function DetallesVisitaScreen() {
             <QrCode className="size-5" />
             Ver Código de Acceso
           </Button>
+
+          <button
+            onClick={async () => {
+              if (window.confirm("¿Cancelar esta visita?")) {
+                await cancel()
+                navigate("/movil/visitas")
+              }
+            }}
+            disabled={visita.status === "cancelada"}
+            className="w-full px-4 py-2 rounded-lg bg-red-50 text-red-700 font-semibold border border-red-200 disabled:opacity-50"
+          >
+            {visita.status === "cancelada" ? "Cancelada" : "Cancelar visita"}
+          </button>
         </div>
       </div>
 
@@ -174,7 +222,7 @@ export function DetallesVisitaScreen() {
               className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
               style={{ background: "#f0fdf4" }}
             >
-              <span className="text-3xl">👤</span>
+              <User size={32} className="text-green-600" />
             </div>
             <h2 className="text-lg font-black text-gray-900 mb-1">
               Visita registrada
@@ -185,13 +233,23 @@ export function DetallesVisitaScreen() {
               Comparte este código QR con tu visita para agilizar su acceso
             </p>
 
-            <QrCodeSvg size={180} color="#ea580c" />
+            {visita.qrToken ? (
+              <QRCodeSVG
+                value={visita.qrToken}
+                size={200}
+                level="M"
+                bgColor="#ffffff"
+                fgColor="#0a1528"
+              />
+            ) : (
+              <QrCodeSvg size={180} color="#ea580c" />
+            )}
 
             <button
               onClick={() => setShowQr(false)}
               className="mt-6 w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600"
             >
-              ✕
+              <X size={16} />
             </button>
           </div>
         </SheetContent>

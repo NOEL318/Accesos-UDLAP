@@ -1,0 +1,5 @@
+[
+  { "id": "c1", "dia": 1, "inicio": 9, "fin": 10, "materia": "Cálculo Integral", "salon": "CF301" },
+  { "id": "c2", "dia": 1, "inicio": 11, "fin": 12.5, "materia": "Programación", "salon": "CH105" },
+  { "id": "c3", "dia": 2, "inicio": 13, "fin": 14, "materia": "Estadística", "salon": "CF402" }
+]

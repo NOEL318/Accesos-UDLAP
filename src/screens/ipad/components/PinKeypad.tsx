@@ -7,6 +7,7 @@ interface Props {
   disabled?: boolean
 }
 
+// teclado numerico para ingresar el PIN del oficial
 export function PinKeypad({ onDigit, onBackspace, disabled }: Props) {
   const digits = ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
   return (

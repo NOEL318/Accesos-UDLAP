@@ -1,0 +1,10 @@
+[
+  {
+    "id": "p1",
+    "libroId": "b1",
+    "libro": { "id": "b1", "titulo": "Sistemas Operativos Modernos", "autor": "Andrew S. Tanenbaum", "icon": "book-blue" },
+    "fechaPrestamo": "2026-04-15T10:00:00Z",
+    "fechaVencimiento": "2026-04-29T23:59:59Z",
+    "estado": "activo"
+  }
+]

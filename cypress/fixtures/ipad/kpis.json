@@ -1,0 +1,11 @@
+{
+  "entradasHoy": 132,
+  "deltaEntradas": 12,
+  "incidentesActivos": 3,
+  "incidentesModerados": 1,
+  "incidentesCriticos": 1,
+  "vehiculosEnCampus": 47,
+  "capacidadPct": 62,
+  "visitasNocturnas": 8,
+  "pendientesCheckout": 4
+}

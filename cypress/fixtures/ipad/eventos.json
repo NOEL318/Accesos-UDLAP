@@ -1,0 +1,18 @@
+[
+  {
+    "id": "ev1",
+    "vehiculoId": "v2",
+    "puntoId": "pt-1",
+    "oficialId": "of-mendoza",
+    "resultado": "permitido",
+    "timestamp": "2026-04-21T14:22:00Z"
+  },
+  {
+    "id": "ev2",
+    "vehiculoId": "v1",
+    "puntoId": "pt-1",
+    "oficialId": "of-mendoza",
+    "resultado": "permitido",
+    "timestamp": "2026-04-21T13:58:00Z"
+  }
+]

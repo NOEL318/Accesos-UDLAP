@@ -1,0 +1,13 @@
+{
+  "_id": "v3",
+  "anfitrionId": "u-res-1",
+  "invitado": { "nombre": "Juan Pérez", "tipoId": "PERJ950101", "categoria": "personal" },
+  "tipoAcceso": "vehicular",
+  "puntoAcceso": "Principal",
+  "fechaHora": "2026-04-30T09:00:00Z",
+  "multiplesEntradas": false,
+  "status": "programada",
+  "qrToken": "qr-fake-99999",
+  "createdAt": "2026-04-29T12:00:00Z",
+  "updatedAt": "2026-04-29T12:00:00Z"
+}

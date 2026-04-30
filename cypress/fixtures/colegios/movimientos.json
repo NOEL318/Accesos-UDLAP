@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "mov1",
+    "residenteUserId": "u-r1",
+    "tipo": "ingreso",
+    "estado": "ok",
+    "hora": "2026-04-29T07:00:00Z",
+    "edificioId": "ed1"
+  },
+  {
+    "_id": "mov2",
+    "residenteUserId": "u-r2",
+    "tipo": "salida",
+    "estado": "ok",
+    "hora": "2026-04-29T08:30:00Z",
+    "edificioId": "ed1"
+  }
+]

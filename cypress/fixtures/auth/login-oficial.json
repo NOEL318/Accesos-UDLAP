@@ -1,0 +1,10 @@
+{
+  "token": "fake-jwt-oficial",
+  "user": {
+    "id": "u-of-1",
+    "email": "carlos@udlap.mx",
+    "role": "oficial",
+    "nombre": "Carlos",
+    "apellido": "Ramírez"
+  }
+}

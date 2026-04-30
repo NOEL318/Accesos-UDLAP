@@ -1,0 +1,7 @@
+{
+  "id": "o1",
+  "items": [{ "menuItemId": "m1", "cantidad": 1 }],
+  "total": 95,
+  "estado": "pagada",
+  "fecha": "2026-04-29T12:00:00Z"
+}

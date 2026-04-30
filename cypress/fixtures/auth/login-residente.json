@@ -1,0 +1,13 @@
+{
+  "token": "fake-jwt-residente",
+  "user": {
+    "id": "u-res-1",
+    "email": "ana@udlap.mx",
+    "role": "residente",
+    "nombre": "Ana",
+    "apellido": "Pérez",
+    "profile": {
+      "estudiante": { "studentId": "169800" }
+    }
+  }
+}

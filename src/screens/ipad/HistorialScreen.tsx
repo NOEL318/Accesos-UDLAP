@@ -30,6 +30,7 @@ import { SectionCard } from "./components/SectionCard"
 import { StatusBadge } from "./components/StatusBadge"
 import { officersSeed } from "./data"
 
+// pantalla con el historial cronologico de accesos y filtros por punto/resultado
 export function HistorialScreen() {
   const { eventos, vehiculos, puntosControl } = useIpadData()
   const [query, setQuery] = useState("")
@@ -39,6 +40,7 @@ export function HistorialScreen() {
 
   const officersById = Object.fromEntries(officersSeed.map((o) => [o.id, o]))
 
+  // filtra eventos por busqueda libre, resultado y punto seleccionado
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim()
     return eventos.filter((e) => {

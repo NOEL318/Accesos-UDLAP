@@ -42,12 +42,14 @@ const accesoVariant: Record<string, "success" | "danger" | "warning"> = {
   revision: "warning",
 }
 
+// pantalla con el listado y gestion de vehiculos del campus
 export function VehiculosScreen() {
   const navigate = useNavigate()
   const { vehiculos, kpis } = useIpadData()
   const [query, setQuery] = useState("")
   const [page, setPage] = useState(1)
 
+  // filtra vehiculos por matricula, nombre o ID del propietario
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim()
     if (!q) return vehiculos

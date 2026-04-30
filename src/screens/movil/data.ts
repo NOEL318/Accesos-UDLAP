@@ -23,7 +23,7 @@ export interface MenuItem {
   precio: number
   descripcion: string
   categoria: "principal" | "economico" | "vegano"
-  emoji: string
+  icon: string
 }
 
 export interface Libro {
@@ -32,7 +32,7 @@ export interface Libro {
   autor: string
   estado: "prestamo" | "deseo" | "disponible"
   dueDate?: string
-  cover: string
+  icon: string
 }
 
 export interface ClaseHorario {
@@ -124,7 +124,7 @@ export const menuMock: MenuItem[] = [
     precio: 95,
     descripcion: "Quinoa, garbanzos, pepino, tomate cherry",
     categoria: "principal",
-    emoji: "🥗",
+    icon: "salad",
   },
   {
     id: "m2",
@@ -132,7 +132,7 @@ export const menuMock: MenuItem[] = [
     precio: 63,
     descripcion: "Lechuga mixta, pollo a la plancha, aderezo cesar",
     categoria: "economico",
-    emoji: "🥙",
+    icon: "sandwich",
   },
   {
     id: "m3",
@@ -140,7 +140,7 @@ export const menuMock: MenuItem[] = [
     precio: 45,
     descripcion: "Sopa crema con crutones y albahaca fresca",
     categoria: "vegano",
-    emoji: "🍲",
+    icon: "soup",
   },
   {
     id: "m4",
@@ -148,7 +148,7 @@ export const menuMock: MenuItem[] = [
     precio: 85,
     descripcion: "Con arroz integral y verduras al vapor",
     categoria: "principal",
-    emoji: "🍗",
+    icon: "drumstick",
   },
   {
     id: "m5",
@@ -156,7 +156,7 @@ export const menuMock: MenuItem[] = [
     precio: 25,
     descripcion: "500 ml, sin azúcar añadida",
     categoria: "economico",
-    emoji: "🧃",
+    icon: "juice",
   },
 ]
 
@@ -167,7 +167,7 @@ export const librosMock: Libro[] = [
     autor: "Andrew S. Tanenbaum",
     estado: "prestamo",
     dueDate: "28 Oct 2023",
-    cover: "📘",
+    icon: "book-blue",
   },
   {
     id: "b2",
@@ -175,28 +175,28 @@ export const librosMock: Libro[] = [
     autor: "James Stewart",
     estado: "prestamo",
     dueDate: "02 Nov 2023",
-    cover: "📗",
+    icon: "book-green",
   },
   {
     id: "b3",
     titulo: "Artificial Intelligence",
     autor: "Stuart Russell",
     estado: "deseo",
-    cover: "📙",
+    icon: "book-orange",
   },
   {
     id: "b4",
     titulo: "Architecture Design Patterns",
     autor: "Martin Fowler",
     estado: "deseo",
-    cover: "📕",
+    icon: "book-red",
   },
   {
     id: "b5",
     titulo: "Class C++ Design",
     autor: "Bjarne Stroustrup",
     estado: "deseo",
-    cover: "📓",
+    icon: "book-black",
   },
 ]
 

@@ -1,0 +1,34 @@
+[
+  {
+    "_id": "u-r1",
+    "nombre": "Ana",
+    "apellido": "Pérez",
+    "avatar": "https://i.pravatar.cc/120?img=12",
+    "profile": {
+      "residente": {
+        "studentId": "169800",
+        "edificioId": "ed1",
+        "habitacion": "101A",
+        "programa": "ISC",
+        "semestre": 5,
+        "estado": "dentro"
+      }
+    }
+  },
+  {
+    "_id": "u-r2",
+    "nombre": "Luis",
+    "apellido": "Gómez",
+    "avatar": "https://i.pravatar.cc/120?img=33",
+    "profile": {
+      "residente": {
+        "studentId": "169801",
+        "edificioId": "ed1",
+        "habitacion": "102A",
+        "programa": "IME",
+        "semestre": 3,
+        "estado": "fuera"
+      }
+    }
+  }
+]

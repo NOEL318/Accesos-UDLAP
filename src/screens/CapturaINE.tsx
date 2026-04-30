@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import {
   HiOutlineCamera,
   HiOutlineXMark,
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge"
 import { KioscoHeader } from "@/components/KioscoHeader"
 import { cn } from "@/lib/utils"
 import type { Screen } from "@/App"
+import { compressToBase64 } from "@/lib/image"
+import { registrarIngresoAlternativo } from "@/lib/quiosco"
 
 interface Props {
   onNavigate: (screen: Screen) => void
@@ -20,16 +22,55 @@ interface Props {
 
 type CaptureState = "ready" | "capturing" | "captured"
 
+// pantalla del quiosco para capturar la foto de la INE del visitante
 export function CapturaINE({ onNavigate }: Props) {
   const [state, setState] = useState<CaptureState>("ready")
+  const [error, setError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
 
+  // dispara el click oculto del input de archivo para abrir la cámara
   const handleCapture = () => {
+    fileRef.current?.click()
+  }
+
+  // procesa la foto seleccionada, la comprime y registra el ingreso alternativo
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    // Reset the input so the same file can be re-selected later
+    if (e.target) e.target.value = ""
+    if (!file) return
     setState("capturing")
-    setTimeout(() => setState("captured"), 2200)
+    setError(null)
+    try {
+      const base64 = await compressToBase64(file, { maxKB: 250, maxPx: 800 })
+      const nombre = window.prompt("Nombre completo del visitante:") || "Visitante INE"
+      const tipoId = window.prompt("Número de identificación (opcional):") || undefined
+      await registrarIngresoAlternativo({
+        nombre,
+        tipoId,
+        fotoIne: base64,
+        motivo: "Sin credencial",
+      })
+      setState("captured")
+      setTimeout(() => onNavigate("principal"), 2500)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Error al subir foto"
+      setState("ready")
+      setError(message)
+    }
   }
 
   return (
     <div className="flex flex-col h-screen bg-[#f4f5f7] overflow-hidden">
+      {/* Hidden file input — triggered by the "Capturar Foto" button */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        hidden
+        onChange={handleFile}
+      />
       <KioscoHeader
         subtitle="Quiosco"
         rightContent={
@@ -214,6 +255,12 @@ export function CapturaINE({ onNavigate }: Props) {
             Asegúrese de que el texto sea legible
           </span>
         </div>
+
+        {error && (
+          <div className="px-4 py-2 rounded-lg bg-red-50 text-red-700 text-sm font-medium border border-red-200 max-w-md text-center">
+            {error}
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex gap-3">

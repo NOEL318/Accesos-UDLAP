@@ -1,0 +1,16 @@
+[
+  {
+    "id": "pt-1",
+    "nombre": "Puerta 1 (Principal)",
+    "tipo": "principal",
+    "estado": "activa",
+    "oficialOperadorId": "of-mendoza"
+  },
+  {
+    "id": "pt-2",
+    "nombre": "Puerta 2 (Postgrado)",
+    "tipo": "postgrado",
+    "estado": "activa",
+    "oficialOperadorId": "of-ramirez"
+  }
+]

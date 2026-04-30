@@ -8,6 +8,7 @@ interface Props {
   onClick?: () => void
 }
 
+// tarjeta clickable de un punto de control con su estado y oficial asignado
 export function PuntoControlCard({ punto, onClick }: Props) {
   const isResidencial = punto.tipo === "residencial"
   const Icon = isResidencial ? Home : DoorClosed

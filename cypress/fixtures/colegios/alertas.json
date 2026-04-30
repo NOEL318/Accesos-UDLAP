@@ -1,0 +1,11 @@
+[
+  {
+    "_id": "ca1",
+    "tipo": "visita-prolongada",
+    "severidad": "moderada",
+    "descripcion": "Visita activa más de 8 horas",
+    "timestamp": "2026-04-29T06:00:00Z",
+    "estado": "activa",
+    "refs": { "edificioId": "ed1" }
+  }
+]

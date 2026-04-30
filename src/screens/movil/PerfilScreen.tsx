@@ -1,22 +1,54 @@
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, LogOut, ChevronRight } from "lucide-react"
+import { ArrowLeft, LogOut, ChevronRight, Camera } from "lucide-react"
+import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { BottomNav } from "./BottomNav"
-import { currentUser } from "./data"
+import { useAuth } from "@/lib/auth-store"
+import { usePerfil } from "./hooks/usePerfil"
 
-const fields = [
-  { label: "Nombre", value: currentUser.nombre },
-  { label: "Apellido", value: currentUser.apellido },
-  { label: "ID", value: currentUser.studentId },
-  { label: "Email", value: currentUser.email },
-]
-
+// pantalla de perfil del usuario con avatar, datos basicos y boton de cerrar sesion
 export function PerfilScreen() {
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
+  const { changeAvatar, saving, error } = usePerfil()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
 
-  const handleLogout = () => {
+  // cierra sesion y regresa al login
+  const handleLogout = async () => {
+    await logout()
     navigate("/movil/login")
   }
+
+  // toma el archivo seleccionado y lo manda como nuevo avatar
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setLocalError(null)
+    try {
+      await changeAvatar(file)
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Error al subir avatar")
+    } finally {
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-gray-400">
+        Cargando…
+      </div>
+    )
+  }
+
+  const studentId = user.profile?.estudiante?.studentId ?? ""
+  const fields = [
+    { label: "Nombre", value: user.nombre },
+    { label: "Apellido", value: user.apellido },
+    { label: "ID", value: studentId },
+    { label: "Email", value: user.email },
+  ]
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
@@ -33,14 +65,25 @@ export function PerfilScreen() {
         <div className="flex items-center gap-4">
           <div className="relative">
             <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-black text-xl"
+              className="w-16 h-16 rounded-full flex items-center justify-center text-white font-black text-xl overflow-hidden"
               style={{
                 background: "linear-gradient(135deg,#1e3a5f,#0f2d5e)",
                 border: "3px solid #ea580c",
                 padding: 2,
               }}
             >
-              {currentUser.nombre[0]}{currentUser.apellido[0]}
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={`${user.nombre} ${user.apellido}`}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <>
+                  {user.nombre[0]}
+                  {user.apellido[0]}
+                </>
+              )}
             </div>
             {/* Online dot */}
             <span
@@ -48,19 +91,42 @@ export function PerfilScreen() {
               style={{ background: "#22c55e" }}
             />
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <h2 className="text-xl font-black text-gray-900">
-              {currentUser.nombre} {currentUser.apellido}
+              {user.nombre} {user.apellido}
             </h2>
-            <p className="text-sm text-gray-400 font-medium">ID: {currentUser.id}</p>
+            <p className="text-sm text-gray-400 font-medium">ID: {studentId || user.id}</p>
             <span
               className="inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full mt-1"
               style={{ background: "#fff3ee", color: "#ea580c" }}
             >
-              {currentUser.tipo}
+              {user.role === "estudiante" ? "Estudiante Licenciatura" : user.role}
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            disabled={saving}
+            className="shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl disabled:opacity-50"
+            style={{ background: "#fff3ee", color: "#ea580c" }}
+          >
+            <Camera className="size-3.5" />
+            {saving ? "Subiendo…" : "Cambiar foto"}
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleFileChange}
+          />
         </div>
+
+        {(localError || error) && (
+          <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-2.5 text-xs font-bold text-red-700">
+            {localError || error}
+          </div>
+        )}
 
         {/* Info card */}
         <div

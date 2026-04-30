@@ -31,9 +31,11 @@ const severidadCopy: Record<SeveridadAlerta, { label: string; variant: "danger" 
   info: { label: "Informativas", variant: "info", color: "info" },
 }
 
+// pantalla del centro de alertas con KPIs y columnas por severidad
 export function AlertasScreen() {
   const { alertas, marcarAlertaAtendida } = useIpadData()
 
+  // separa alertas por severidad y cuenta las de hoy
   const { critica, moderada, info, activasHoy, atendidasHoy, criticasPendientes } = useMemo(() => {
     const hoy = new Date().toDateString()
     const activas = alertas.filter((a) => a.estado === "activa")
@@ -90,6 +92,7 @@ export function AlertasScreen() {
   )
 }
 
+// columna de alertas filtradas por severidad con boton para marcar atendida
 function AlertaColumn({
   titulo,
   icon,

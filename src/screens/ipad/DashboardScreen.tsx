@@ -25,6 +25,7 @@ import { FlujoBarChart } from "./components/FlujoBarChart"
 import { useIpadData } from "./context/IpadDataContext"
 import { flujo24hSeed } from "./data"
 
+// pantalla principal del iPad de seguridad con KPIs, puntos de control, flujo y feed
 export function DashboardScreen() {
   const navigate = useNavigate()
   const { kpis, puntosControl, alertas, eventos, vehiculos } = useIpadData()
@@ -53,6 +54,7 @@ export function DashboardScreen() {
     .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
     .slice(0, 4)
 
+  // formatea un ISO a hora corta en es-MX
   function fmtTime(iso: string) {
     return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
   }

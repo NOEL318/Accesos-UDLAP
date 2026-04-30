@@ -1,4 +1,11 @@
-import { createContext, useCallback, useContext, useMemo, useState } from "react"
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react"
 import type {
   Alerta,
   DashboardKpis,
@@ -6,17 +13,15 @@ import type {
   Multa,
   MultaInput,
   Punto,
+  SeveridadAlerta,
   Vehiculo,
 } from "../types"
-import {
-  alertasSeed,
-  eventosSeed,
-  KPI_BASELINE_ENTRADAS_HOY,
-  KPI_BASELINE_VEHICULOS_EN_CAMPUS,
-  multasSeed,
-  puntosSeed,
-  vehiculosSeed,
-} from "../data"
+import { useIpadVehiculos } from "../hooks/useIpadVehiculos"
+import { useIpadMultas } from "../hooks/useIpadMultas"
+import { useIpadEventos } from "../hooks/useIpadEventos"
+import { useIpadAlertas } from "../hooks/useIpadAlertas"
+import { useIpadKpis } from "../hooks/useIpadKpis"
+import { api } from "@/lib/api"
 
 interface DataValue {
   vehiculos: Vehiculo[]
@@ -25,198 +30,198 @@ interface DataValue {
   alertas: Alerta[]
   puntosControl: Punto[]
   kpis: DashboardKpis
+  loading: boolean
 
-  permitirAcceso(vehiculoId: string, puntoId: string, oficialId: string): void
+  permitirAcceso(vehiculoId: string, puntoId: string, oficialId: string): Promise<void>
   denegarAcceso(
     vehiculoId: string,
     puntoId: string,
     oficialId: string,
     motivo: string
-  ): void
-  registrarMulta(input: MultaInput, oficialId: string): void
-  autorizarSalida(vehiculoId: string, oficialId: string): void
-  marcarAlertaAtendida(alertaId: string): void
+  ): Promise<void>
+  registrarMulta(input: MultaInput, oficialId: string): Promise<void>
+  autorizarSalida(vehiculoId: string, oficialId: string): Promise<void>
+  marcarAlertaAtendida(alertaId: string): Promise<void>
 }
 
 const Ctx = createContext<DataValue | null>(null)
 
-let seq = 1000
-const nextId = (prefix: string) => `${prefix}-${++seq}`
+// ── Adapters: Mongo docs → tipos legacy del frontend ──────────────────────
 
-export function IpadDataProvider({ children }: { children: React.ReactNode }) {
-  const [vehiculos, setVehiculos] = useState<Vehiculo[]>(vehiculosSeed)
-  const [multas, setMultas] = useState<Multa[]>(multasSeed)
-  const [eventos, setEventos] = useState<EventoAcceso[]>(eventosSeed)
-  const [alertas, setAlertas] = useState<Alerta[]>(alertasSeed)
-
-  const permitirAcceso = useCallback(
-    (vehiculoId: string, puntoId: string, oficialId: string) => {
-      setEventos((prev) => [
-        {
-          id: nextId("ev"),
-          vehiculoId,
-          puntoId,
-          oficialId,
-          resultado: "permitido",
-          timestamp: new Date().toISOString(),
-        },
-        ...prev,
-      ])
+// convierte un doc de Mongo a un Vehiculo del frontend
+function adaptVehiculo(v: any): Vehiculo {
+  return {
+    id: String(v._id ?? ""),
+    matricula: v.matricula ?? "",
+    propietario: {
+      nombre: v.propietarioInfo?.nombre ?? "",
+      idUdlap: v.propietarioInfo?.idUdlap ?? "",
+      tipo: v.propietarioInfo?.tipo ?? "externo",
     },
-    []
-  )
-
-  const denegarAcceso = useCallback(
-    (vehiculoId: string, puntoId: string, oficialId: string, motivo: string) => {
-      setEventos((prev) => [
-        {
-          id: nextId("ev"),
-          vehiculoId,
-          puntoId,
-          oficialId,
-          resultado: "denegado",
-          motivo,
-          timestamp: new Date().toISOString(),
-        },
-        ...prev,
-      ])
-      setAlertas((prev) => [
-        {
-          id: nextId("al"),
-          tipo: "incidente",
-          severidad: "moderada",
-          descripcion: `Acceso denegado · ${motivo}`,
-          vehiculoId,
-          timestamp: new Date().toISOString(),
-          estado: "activa",
-        },
-        ...prev,
-      ])
+    foto: v.foto ?? "",
+    modelo: v.modelo ?? "",
+    color: v.color ?? "",
+    sello: {
+      vigente: v.sello?.vigente ?? false,
+      vence: v.sello?.vence
+        ? String(new Date(v.sello.vence).getFullYear())
+        : "",
     },
-    []
-  )
+    ubicacion: v.ubicacion ?? "",
+    multasPendientes: v.multasPendientes ?? 0,
+    estadoAcceso: v.estadoAcceso ?? "permitido",
+    ocupantes: v.ocupantes ?? 1,
+    bloqueoSalida: v.bloqueoSalida,
+  }
+}
 
-  const registrarMulta = useCallback(
-    (input: MultaInput, oficialId: string) => {
-      const nueva: Multa = {
-        id: nextId("mu"),
-        vehiculoId: input.vehiculoId,
-        oficialId,
-        tipo: input.tipo,
-        montoMxn: input.montoMxn,
-        evidencia: input.evidencia,
-        comentarios: input.comentarios,
-        fecha: new Date().toISOString(),
-        estado: "pendiente",
-      }
-      setMultas((prev) => [nueva, ...prev])
-      setVehiculos((prev) =>
-        prev.map((v) =>
-          v.id === input.vehiculoId
-            ? { ...v, multasPendientes: v.multasPendientes + 1 }
-            : v
-        )
-      )
-      setAlertas((prev) => [
-        {
-          id: nextId("al"),
-          tipo: "incidente",
-          severidad: "moderada",
-          descripcion: `Nueva multa registrada: ${input.tipo} · $${input.montoMxn}`,
-          vehiculoId: input.vehiculoId,
-          timestamp: new Date().toISOString(),
-          estado: "activa",
-        },
-        ...prev,
-      ])
-    },
-    []
-  )
+// convierte un doc de Mongo a una Multa del frontend
+function adaptMulta(m: any): Multa {
+  return {
+    id: String(m._id ?? ""),
+    vehiculoId: String(m.vehiculoId ?? ""),
+    oficialId: String(m.oficialId ?? ""),
+    tipo: m.tipo ?? "",
+    montoMxn: m.montoMxn ?? 0,
+    evidencia: m.evidencia ?? [],
+    comentarios: m.comentarios ?? "",
+    fecha: m.fecha
+      ? typeof m.fecha === "string"
+        ? m.fecha
+        : new Date(m.fecha).toISOString()
+      : "",
+    estado: m.estado ?? "pendiente",
+  }
+}
 
-  const autorizarSalida = useCallback(
-    (vehiculoId: string, oficialId: string) => {
-      setVehiculos((prev) =>
-        prev.map((v) =>
-          v.id === vehiculoId
-            ? { ...v, bloqueoSalida: undefined, estadoAcceso: "permitido" }
-            : v
-        )
-      )
-      setEventos((prev) => [
-        {
-          id: nextId("ev"),
-          vehiculoId,
-          puntoId: "pt-1",
-          oficialId,
-          resultado: "permitido",
-          motivo: "Salida autorizada manualmente",
-          timestamp: new Date().toISOString(),
-        },
-        ...prev,
-      ])
-    },
-    []
-  )
+// convierte un doc de Mongo a un EventoAcceso del frontend
+function adaptEvento(e: any): EventoAcceso {
+  return {
+    id: String(e._id ?? ""),
+    vehiculoId: String(e.vehiculoId ?? ""),
+    puntoId: String(e.puntoId ?? ""),
+    oficialId: String(e.oficialId ?? ""),
+    resultado: e.resultado,
+    motivo: e.motivo,
+    timestamp: e.timestamp
+      ? typeof e.timestamp === "string"
+        ? e.timestamp
+        : new Date(e.timestamp).toISOString()
+      : "",
+  }
+}
 
-  const marcarAlertaAtendida = useCallback((alertaId: string) => {
-    setAlertas((prev) =>
-      prev.map((a) => (a.id === alertaId ? { ...a, estado: "atendida" } : a))
-    )
+// convierte un doc de Mongo a una Alerta y normaliza la severidad al enum legacy
+function adaptAlerta(a: any): Alerta {
+  // Backend admite "critica" | "alta" | "moderada" | "media" | "info"
+  // Frontend legacy solo: "critica" | "moderada" | "info"
+  let severidad: SeveridadAlerta = "info"
+  switch (a.severidad) {
+    case "critica":
+      severidad = "critica"
+      break
+    case "alta":
+    case "moderada":
+    case "media":
+      severidad = "moderada"
+      break
+    case "info":
+    default:
+      severidad = "info"
+  }
+  return {
+    id: String(a._id ?? ""),
+    tipo: a.tipo,
+    severidad,
+    descripcion: a.descripcion ?? "",
+    vehiculoId: a.refs?.vehiculoId ? String(a.refs.vehiculoId) : undefined,
+    timestamp: a.timestamp
+      ? typeof a.timestamp === "string"
+        ? a.timestamp
+        : new Date(a.timestamp).toISOString()
+      : "",
+    estado: a.estado ?? "activa",
+  }
+}
+
+// convierte un doc de Mongo a un Punto de control del frontend
+function adaptPunto(p: any): Punto {
+  return {
+    id: String(p._id ?? ""),
+    nombre: p.nombre ?? "",
+    tipo: p.tipo ?? "principal",
+    estado: p.estado ?? "activa",
+    oficialOperadorId: String(p.oficialOperadorId ?? ""),
+  }
+}
+
+const FALLBACK_KPIS: DashboardKpis = {
+  entradasHoy: 0,
+  deltaEntradas: 0,
+  incidentesActivos: 0,
+  incidentesModerados: 0,
+  incidentesCriticos: 0,
+  vehiculosEnCampus: 0,
+  capacidadPct: 0,
+  visitasNocturnas: 0,
+  pendientesCheckout: 0,
+}
+
+// provider que mantiene la data global del iPad (vehiculos, multas, eventos, alertas, kpis, puntos)
+export function IpadDataProvider({ children }: { children: ReactNode }) {
+  const vehHook = useIpadVehiculos()
+  const multHook = useIpadMultas()
+  const evHook = useIpadEventos()
+  const alHook = useIpadAlertas()
+  const kpisHook = useIpadKpis()
+  const [puntos, setPuntos] = useState<Punto[]>([])
+
+  // carga los puntos de control una sola vez al montar
+  useEffect(() => {
+    void api
+      .get<any[]>("/api/puntos-control")
+      .then((items) => setPuntos(items.map(adaptPunto)))
+      .catch(() => setPuntos([]))
   }, [])
 
-  const kpis = useMemo<DashboardKpis>(() => {
-    const hoy = new Date().toDateString()
-    const entradasHoy = eventos.filter(
-      (e) => e.resultado === "permitido" && new Date(e.timestamp).toDateString() === hoy
-    ).length
-    const incidentes = alertas.filter(
-      (a) => a.estado === "activa" && (a.severidad === "critica" || a.severidad === "moderada")
-    )
-    return {
-      entradasHoy: entradasHoy + KPI_BASELINE_ENTRADAS_HOY,
-      deltaEntradas: 5,
-      incidentesActivos: incidentes.length,
-      incidentesModerados: incidentes.filter((i) => i.severidad === "moderada").length,
-      incidentesCriticos: incidentes.filter((i) => i.severidad === "critica").length,
-      vehiculosEnCampus: vehiculos.filter((v) => v.estadoAcceso === "permitido").length + KPI_BASELINE_VEHICULOS_EN_CAMPUS,
-      capacidadPct: 64,
-      visitasNocturnas: 12,
-      pendientesCheckout: 12,
-    }
-  }, [eventos, alertas, vehiculos])
-
+  // arma el value del context combinando data adaptada y acciones de hooks
   const value = useMemo<DataValue>(
     () => ({
-      vehiculos,
-      multas,
-      eventos,
-      alertas,
-      puntosControl: puntosSeed,
-      kpis,
-      permitirAcceso,
-      denegarAcceso,
-      registrarMulta,
-      autorizarSalida,
-      marcarAlertaAtendida,
+      vehiculos: vehHook.data.map(adaptVehiculo),
+      multas: multHook.data.map(adaptMulta),
+      eventos: evHook.data.map(adaptEvento),
+      alertas: alHook.data.map(adaptAlerta),
+      puntosControl: puntos,
+      kpis: kpisHook.data ?? FALLBACK_KPIS,
+      loading: vehHook.loading || kpisHook.loading,
+      async permitirAcceso(vehiculoId, puntoId) {
+        await vehHook.permitir(vehiculoId, puntoId)
+        await Promise.all([evHook.refresh(), kpisHook.refresh()])
+      },
+      async denegarAcceso(vehiculoId, puntoId, _oficialId, motivo) {
+        await vehHook.denegar(vehiculoId, motivo, puntoId)
+        await Promise.all([evHook.refresh(), alHook.refresh(), kpisHook.refresh()])
+      },
+      async registrarMulta(input) {
+        await multHook.crear(input)
+        await Promise.all([vehHook.refresh(), alHook.refresh()])
+      },
+      async autorizarSalida(vehiculoId) {
+        await vehHook.autorizarSalida(vehiculoId)
+        await evHook.refresh()
+      },
+      async marcarAlertaAtendida(alertaId) {
+        await alHook.atender(alertaId)
+      },
     }),
-    [
-      vehiculos,
-      multas,
-      eventos,
-      alertas,
-      kpis,
-      permitirAcceso,
-      denegarAcceso,
-      registrarMulta,
-      autorizarSalida,
-      marcarAlertaAtendida,
-    ]
+    [vehHook, multHook, evHook, alHook, kpisHook, puntos]
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
+// hook para consumir el IpadDataContext, lanza error si esta fuera del provider
 export function useIpadData(): DataValue {
   const v = useContext(Ctx)
   if (!v) throw new Error("useIpadData fuera de IpadDataProvider")

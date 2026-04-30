@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import {
   LayoutDashboard,
   DoorOpen,
@@ -50,6 +50,7 @@ interface Props {
   setMobileOpen: (v: boolean) => void
 }
 
+// sidebar del iPad con version desktop fija y version mobile en sheet
 export function IpadSidebar({ mobileOpen, setMobileOpen }: Props) {
   return (
     <>
@@ -67,9 +68,17 @@ export function IpadSidebar({ mobileOpen, setMobileOpen }: Props) {
   )
 }
 
+// contenido del sidebar con logo, navegacion y bloque de oficial/logout
 function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
   const { officer, logout } = useIpadSession()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  // cierra sesion del oficial y manda a la pantalla de login
+  const handleLogout = async () => {
+    onNavigate()
+    await logout()
+    navigate("/ipad/login", { replace: true })
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -159,10 +168,7 @@ function SidebarContent({ onNavigate }: { onNavigate: () => void }) {
           <Button
             variant="outline"
             className="mt-2 w-full justify-start gap-2"
-            onClick={() => {
-              logout()
-              onNavigate()
-            }}
+            onClick={handleLogout}
           >
             <LogOutIcon className="size-4" />
             Cerrar Sesión

@@ -3,10 +3,11 @@ interface QrCodeProps {
   color?: string
 }
 
-// Generates a visually accurate QR-like code with proper finder patterns
+// dibuja un QR decorativo en SVG con los patrones tipicos de un QR real
 export function QrCode({ size = 200, color = "#ea580c" }: QrCodeProps) {
   const N = 21
 
+  // decide si una celda del grid debe pintarse segun los patrones del QR
   function cell(r: number, c: number): boolean {
     // Top-left finder pattern (rows 0-6, cols 0-6)
     if (r <= 6 && c <= 6) {

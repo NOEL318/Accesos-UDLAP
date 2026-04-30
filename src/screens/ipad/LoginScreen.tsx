@@ -7,6 +7,7 @@ import { useIpadSession } from "./context/IpadSessionContext"
 import { PinKeypad } from "./components/PinKeypad"
 import { cn } from "@/lib/utils"
 
+// pantalla de login del iPad con seleccion de oficial y captura de PIN
 export function LoginScreen() {
   const { officers, login } = useIpadSession()
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -16,24 +17,30 @@ export function LoginScreen() {
 
   const selected = officers.find((o) => o.id === selectedId) ?? null
 
+  // agrega un digito al PIN y dispara el login al llegar a 4
   function handleDigit(d: string) {
     if (pin.length >= 4) return
     const next = pin + d
     setPin(next)
     setError(false)
     if (next.length === 4 && selected) {
-      const ok = login(selected.id, next)
-      if (!ok) {
-        setError(true)
-        setShake(true)
-        setTimeout(() => {
-          setShake(false)
-          setPin("")
-        }, 500)
-      }
+      void (async () => {
+        const ok = await login(selected.id, next)
+        if (!ok) {
+          setError(true)
+          setShake(true)
+          setTimeout(() => {
+            setShake(false)
+            setPin("")
+          }, 500)
+        }
+        // En caso de éxito, AuthProvider actualiza el user → IpadLayoutInner
+        // re-renderiza y redirige al dashboard automáticamente.
+      })()
     }
   }
 
+  // borra el ultimo digito del PIN
   function handleBackspace() {
     setPin((p) => p.slice(0, -1))
     setError(false)

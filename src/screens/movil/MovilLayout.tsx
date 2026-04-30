@@ -1,7 +1,17 @@
-import { Outlet, Link } from "react-router-dom"
-import { ArrowLeft } from "lucide-react"
+import { Outlet, Link, useNavigate } from "react-router-dom"
+import { ArrowLeft, LogOut } from "lucide-react"
+import { useAuth } from "@/lib/auth-store"
 
+// layout del movil que envuelve todas las pantallas dentro del frame de telefono
 export function MovilLayout() {
+  const { logout } = useAuth()
+  const navigate = useNavigate()
+  // cierra sesion y manda al login del movil
+  const handleLogout = async () => {
+    await logout()
+    navigate("/movil/login", { replace: true })
+  }
+
   return (
     <div
       className="min-h-screen flex justify-center"
@@ -22,13 +32,21 @@ export function MovilLayout() {
         className="relative w-full max-w-[390px] min-h-screen flex flex-col overflow-x-hidden"
         style={{ background: "#f5f5f5" }}
       >
+        <button
+          onClick={handleLogout}
+          className="fixed top-3 right-3 z-50 p-2 rounded-full bg-white/90 shadow border border-gray-200 hover:bg-gray-50"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
+        >
+          <LogOut className="size-4 text-gray-600" />
+        </button>
         <Outlet />
       </div>
     </div>
   )
 }
 
-/** Layout for screens that show the bottom navigation */
+// layout para pantallas que usan la barra de navegacion inferior
 export function MainLayout() {
   return (
     <>

@@ -45,10 +45,12 @@ const order = [
   "component2",
 ]
 
+// extrae el nombre de archivo sin extensión a partir del path completo
 function getBaseName(path: string) {
   return path.split("/").pop()?.replace(".png", "") ?? ""
 }
 
+// regresa el nombre legible de la pantalla buscando en el diccionario displayNames
 function getDisplayName(path: string) {
   const base = getBaseName(path)
   return displayNames[base] ?? base
@@ -71,6 +73,7 @@ const allScreens = Object.entries(imageModules)
     return ai - bi
   })
 
+// galería de capturas de la app móvil con vista previa y modal de navegación
 export function MovilGallery() {
   const navigate = useNavigate()
   const [selected, setSelected] = useState<number | null>(null)
@@ -176,6 +179,7 @@ interface ScreenCardProps {
   onClick: () => void
 }
 
+// tarjeta de cada pantalla con marco de teléfono y efecto hover
 function ScreenCard({ screen, index, onClick }: ScreenCardProps) {
   const [hovered, setHovered] = useState(false)
 
@@ -215,6 +219,7 @@ function ScreenCard({ screen, index, onClick }: ScreenCardProps) {
 
 // ── Phone frame ────────────────────────────────────────────────────────────
 
+// dibuja el marco estilo iPhone alrededor de la captura, con tamaño normal o grande
 function PhoneFrame({
   src,
   alt,
@@ -274,6 +279,7 @@ interface ModalProps {
   onNext: () => void
 }
 
+// modal a pantalla completa con navegación entre capturas
 function ScreenModal({ screen, index, total, onClose, onPrev, onNext }: ModalProps) {
   return (
     <div

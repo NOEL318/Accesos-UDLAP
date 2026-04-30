@@ -1,0 +1,28 @@
+[
+  {
+    "_id": "v1",
+    "anfitrionId": "u-res-1",
+    "invitado": { "nombre": "Juan Pérez", "tipoId": "PERJ950101", "categoria": "personal" },
+    "tipoAcceso": "vehicular",
+    "puntoAcceso": "Principal",
+    "fechaHora": "2026-04-29T10:00:00Z",
+    "multiplesEntradas": false,
+    "status": "programada",
+    "qrToken": "qr-fake-12345",
+    "createdAt": "2026-04-28T08:00:00Z",
+    "updatedAt": "2026-04-28T08:00:00Z"
+  },
+  {
+    "_id": "v2",
+    "anfitrionId": "u-res-1",
+    "invitado": { "nombre": "Marta Gómez", "tipoId": "GOMA920303", "categoria": "personal" },
+    "tipoAcceso": "peatonal",
+    "puntoAcceso": "Sur",
+    "fechaHora": "2026-04-28T15:30:00Z",
+    "multiplesEntradas": false,
+    "status": "activa",
+    "qrToken": "qr-fake-67890",
+    "createdAt": "2026-04-27T08:00:00Z",
+    "updatedAt": "2026-04-28T15:30:00Z"
+  }
+]

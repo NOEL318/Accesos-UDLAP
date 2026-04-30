@@ -1,0 +1,28 @@
+[
+  {
+    "id": "v1",
+    "matricula": "ABC-123-D",
+    "propietario": { "nombre": "Juan Pérez Rodríguez", "idUdlap": "154892", "tipo": "estudiante" },
+    "foto": "https://i.pravatar.cc/160?img=8",
+    "modelo": "Mazda 3",
+    "color": "Rojo",
+    "sello": { "vigente": true, "vence": "2024" },
+    "ubicacion": "Puerta 1",
+    "multasPendientes": 1,
+    "estadoAcceso": "permitido",
+    "ocupantes": 2
+  },
+  {
+    "id": "v2",
+    "matricula": "TXY-4521",
+    "propietario": { "nombre": "Carlos Méndez Rivera", "idUdlap": "156432", "tipo": "estudiante" },
+    "foto": "https://i.pravatar.cc/160?img=11",
+    "modelo": "Nissan Versa",
+    "color": "Blanco",
+    "sello": { "vigente": true, "vence": "2024" },
+    "ubicacion": "Puerta 1",
+    "multasPendientes": 0,
+    "estadoAcceso": "permitido",
+    "ocupantes": 1
+  }
+]

@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom"
 import { QrCode as QrCodeIcon, MapPin, Users, ChevronRight, Bell, Utensils, BookOpen } from "lucide-react"
 import { BottomNav } from "./BottomNav"
-import { currentUser } from "./data"
 import { QrCode } from "./QrCode"
+import { useAuth } from "@/lib/auth-store"
+import { useVisitas } from "./hooks/useVisitas"
 
 const quickActions = [
   { label: "Código QR", icon: QrCodeIcon, path: "/movil/qr-nfc", color: "#ea580c" },
@@ -10,8 +11,34 @@ const quickActions = [
   { label: "Visitas", icon: Users, path: "/movil/visitas", color: "#059669" },
 ]
 
+// formatea una fecha ISO como fecha y hora corta para mostrar en UI
+function formatFechaHora(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString("es-MX", {
+      dateStyle: "short",
+      timeStyle: "short",
+    })
+  } catch {
+    return iso
+  }
+}
+
+// pantalla del dashboard movil con saludo, accesos rapidos, proxima visita y servicios
 export function DashboardScreen() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const { data: visitas, loading } = useVisitas()
+
+  const proximaVisita =
+    visitas.find((v) => v.status === "activa") ??
+    visitas.find((v) => v.status === "programada") ??
+    null
+
+  const nombre = user?.nombre ?? ""
+  const apellido = user?.apellido ?? ""
+  const saldoComedor = user?.profile?.estudiante?.saldoComedor ?? 0
+  const studentId = user?.profile?.estudiante?.studentId ?? user?.id ?? ""
+  const tipoLabel = user?.role === "estudiante" ? "Estudiante Licenciatura" : (user?.role ?? "")
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
@@ -25,19 +52,19 @@ export function DashboardScreen() {
             className="w-11 h-11 rounded-full flex items-center justify-center text-white font-black text-base"
             style={{ background: "linear-gradient(135deg,#1e3a5f,#0f2d5e)" }}
           >
-            {currentUser.nombre[0]}
-            {currentUser.apellido[0]}
+            {nombre[0] ?? ""}
+            {apellido[0] ?? ""}
           </div>
           <div>
             <p className="font-black text-gray-900 text-base leading-tight">
-              {currentUser.nombre} {currentUser.apellido}
+              {nombre} {apellido}
             </p>
-            <p className="text-xs text-gray-400 font-medium">ID: {currentUser.id}</p>
+            <p className="text-xs text-gray-400 font-medium">ID: {studentId}</p>
             <span
               className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5"
               style={{ background: "#fff3ee", color: "#ea580c" }}
             >
-              Estudiante Licenciatura
+              {tipoLabel}
             </span>
           </div>
         </div>
@@ -68,6 +95,48 @@ export function DashboardScreen() {
               <span className="text-[11px] font-bold text-gray-600">{label}</span>
             </button>
           ))}
+        </div>
+
+        {/* Próxima visita */}
+        <div className="w-full rounded-2xl bg-white shadow-sm p-4">
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+            Próxima visita
+          </p>
+          {loading ? (
+            <p className="text-sm text-gray-400">Cargando…</p>
+          ) : proximaVisita ? (
+            <button
+              onClick={() => navigate(`/movil/visitas/${proximaVisita._id}`)}
+              className="w-full flex items-center gap-3 text-left"
+            >
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: "#fff3ee" }}
+              >
+                <Users className="size-5" style={{ color: "#ea580c" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900 truncate">
+                  {proximaVisita.invitado.nombre}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {formatFechaHora(proximaVisita.fechaHora)} · {proximaVisita.puntoAcceso}
+                </p>
+              </div>
+              <ChevronRight className="size-4 text-gray-300 shrink-0" />
+            </button>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">No hay visitas próximas.</p>
+              <button
+                onClick={() => navigate("/movil/visitas/nueva")}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap"
+                style={{ background: "#fff3ee", color: "#ea580c" }}
+              >
+                Registrar
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Apple Wallet card */}
@@ -150,7 +219,7 @@ export function DashboardScreen() {
               <div>
                 <p className="text-sm font-black text-gray-800">Comedor</p>
                 <p className="text-[11px] text-gray-400">
-                  ${currentUser.saldo.toFixed(2)} MXN
+                  ${saldoComedor.toFixed(2)} MXN
                 </p>
               </div>
             </button>

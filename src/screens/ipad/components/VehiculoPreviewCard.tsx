@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import type { Vehiculo } from "../types"
 import { StatusBadge } from "./StatusBadge"
 
+// devuelve la etiqueta legible del tipo de propietario
 function tipoLabel(tipo: Vehiculo["propietario"]["tipo"]): string {
   switch (tipo) {
     case "estudiante":
@@ -20,6 +21,7 @@ interface Props {
   compact?: boolean
 }
 
+// card con la foto del propietario, placa y datos del vehiculo
 export function VehiculoPreviewCard({ vehiculo, compact }: Props) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">

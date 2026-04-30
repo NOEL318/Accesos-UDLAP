@@ -30,6 +30,7 @@ import { useIpadSession } from "./context/IpadSessionContext"
 import { SectionCard } from "./components/SectionCard"
 import { StatusBadge } from "./components/StatusBadge"
 
+// pantalla del punto de control para registrar accesos vehiculares y nocturnos
 export function PuntoControlScreen() {
   const { vehiculos, puntosControl, permitirAcceso, denegarAcceso } = useIpadData()
   const { officer } = useIpadSession()
@@ -45,11 +46,13 @@ export function PuntoControlScreen() {
   })
   const [feedback, setFeedback] = useState<null | { ok: boolean; msg: string }>(null)
 
+  // localiza el vehiculo por matricula tecleada
   const vehiculo = useMemo(
     () => vehiculos.find((v) => v.matricula.toUpperCase() === query.toUpperCase()) ?? null,
     [query, vehiculos]
   )
 
+  // permite el acceso del vehiculo y registra el evento
   function handlePermitir() {
     if (!vehiculo || !officer) return
     permitirAcceso(vehiculo.id, puntoId, officer.id)
@@ -58,6 +61,7 @@ export function PuntoControlScreen() {
     setObservaciones("")
   }
 
+  // deniega el acceso con motivo y lo manda al historial
   function handleDenegar() {
     if (!vehiculo || !officer) return
     const motivo = observaciones.trim() || "Sin motivo especificado"

@@ -20,6 +20,7 @@ const colors: Record<Color, string> = {
   primary: "bg-orange-50 text-orange-600",
 }
 
+// item del feed de actividad con icono coloreado, titulo, subtitulo y timestamp
 export function ActivityFeedItem({ icon, title, subtitle, timestamp, tag, color = "info", children }: Props) {
   return (
     <div className="flex gap-3 py-3">

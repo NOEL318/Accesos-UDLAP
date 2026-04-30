@@ -19,6 +19,7 @@ const accentBg: Record<NonNullable<Props["accent"]>, string> = {
   success: "bg-emerald-50 text-emerald-600",
 }
 
+// tarjeta de KPI con etiqueta, valor grande, icono y subtitulo opcional
 export function KpiCard({ label, value, icon, accent = "primary", subtitle, className }: Props) {
   return (
     <Card className={cn("gap-3 py-5", className)}>

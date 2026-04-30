@@ -33,6 +33,7 @@ const TIPOS_INFRACCION = [
   "Acceso a zona restringida",
 ]
 
+// pantalla para registrar nuevas multas con busqueda de vehiculo y evidencia
 export function MultasScreen() {
   const { vehiculos, multas, registrarMulta } = useIpadData()
   const { officer } = useIpadSession()
@@ -45,6 +46,7 @@ export function MultasScreen() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  // busca el vehiculo cuya matricula coincida con la placa tecleada
   const vehiculo = useMemo(
     () => vehiculos.find((v) => v.matricula.toUpperCase().includes(placa.toUpperCase().trim())) ?? null,
     [placa, vehiculos]
@@ -54,11 +56,13 @@ export function MultasScreen() {
     ? multas.filter((m) => m.vehiculoId === vehiculo.id).slice(0, 3)
     : []
 
+  // agrega una foto simulada a la lista de evidencia (max 3)
   function handleAddEvidencia() {
     if (evidencia.length >= 3) return
     setEvidencia((prev) => [...prev, `foto-${prev.length + 1}.jpg`])
   }
 
+  // limpia el formulario para una nueva multa
   function handleReset() {
     setPlaca("")
     setTipo("")
@@ -68,6 +72,7 @@ export function MultasScreen() {
     setError(null)
   }
 
+  // valida el formulario y manda registrar la multa al backend
   function handleConfirmar() {
     if (!vehiculo) return setError("Selecciona un vehículo válido buscando por placa.")
     if (!tipo) return setError("Selecciona el tipo de infracción.")

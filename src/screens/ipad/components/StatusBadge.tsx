@@ -27,6 +27,7 @@ const dotStyles: Record<Variant, string> = {
   neutral: "bg-slate-400",
 }
 
+// badge de estatus coloreado por variant con punto opcional
 export function StatusBadge({ variant = "neutral", dot, children, className }: Props) {
   return (
     <span

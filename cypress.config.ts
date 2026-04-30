@@ -1,11 +1,14 @@
-import { defineConfig } from "cypress";
+import { defineConfig } from "cypress"
 
 export default defineConfig({
-  allowCypressEnv: false,
+  // Habilitamos Cypress.env para compartir el rol simulado entre comandos y el
+  // hook window:before:load que hidrata localStorage en cada visit.
+  allowCypressEnv: true,
 
   e2e: {
-    setupNodeEvents(on, config) {
-      // implement node event listeners here
+    baseUrl: "http://localhost:5173",
+    setupNodeEvents() {
+      // sin event listeners por ahora
     },
   },
 
@@ -15,4 +18,4 @@ export default defineConfig({
       bundler: "vite",
     },
   },
-});
+})

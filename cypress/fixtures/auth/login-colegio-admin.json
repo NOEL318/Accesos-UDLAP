@@ -1,0 +1,10 @@
+{
+  "token": "fake-jwt-colegio-admin",
+  "user": {
+    "id": "u-ca-1",
+    "email": "maria@udlap.mx",
+    "role": "adminColegios",
+    "nombre": "María",
+    "apellido": "Hernández"
+  }
+}

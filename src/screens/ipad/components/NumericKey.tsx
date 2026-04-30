@@ -8,6 +8,7 @@ interface Props {
   className?: string
 }
 
+// tecla individual del teclado numerico para PIN
 export function NumericKey({ label, onClick, variant = "default", disabled, className }: Props) {
   return (
     <button

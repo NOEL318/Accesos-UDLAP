@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, master]
+
+jobs:
+  cypress:
+    name: Cypress E2E
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      - name: Run Cypress
+        uses: cypress-io/github-action@v6
+        with:
+          start: npx vite preview --port 5173
+          wait-on: "http://localhost:5173"
+          wait-on-timeout: 60
+          install: false
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cypress-failure
+          path: |
+            cypress/screenshots
+            cypress/videos
+          if-no-files-found: ignore
+
+  build:
+    name: Build (solo en master)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    needs: cypress
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build

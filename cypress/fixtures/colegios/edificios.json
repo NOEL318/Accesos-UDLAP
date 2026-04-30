@@ -1,0 +1,4 @@
+[
+  { "_id": "ed1", "nombre": "Edificio A", "ocupacion": 78, "capacidad": 80 },
+  { "_id": "ed2", "nombre": "Edificio B", "ocupacion": 42, "capacidad": 60 }
+]

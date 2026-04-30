@@ -25,6 +25,7 @@ const motivoCopy: Record<NonNullable<Vehiculo["bloqueoSalida"]>["motivo"], { lab
   incidente: { label: "Incidente Activo", variant: "danger" },
 }
 
+// pantalla de salidas bloqueadas con filtros por motivo y autorizacion especial
 export function SalidasScreen() {
   const { vehiculos, autorizarSalida } = useIpadData()
   const { officer } = useIpadSession()
@@ -34,6 +35,7 @@ export function SalidasScreen() {
   const filtrados = filter === "todos" ? bloqueados : bloqueados.filter((v) => v.bloqueoSalida?.motivo === filter)
   const destacado = bloqueados[0]
 
+  // autoriza la salida especial de un vehiculo bloqueado
   function handleAutorizar(id: string) {
     if (!officer) return
     autorizarSalida(id, officer.id)

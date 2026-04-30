@@ -1,0 +1,13 @@
+[
+  {
+    "id": "mu1",
+    "vehiculoId": "v1",
+    "oficialId": "of-ramirez",
+    "tipo": "Estacionamiento prohibido",
+    "montoMxn": 450,
+    "evidencia": [],
+    "comentarios": "Estacionado en zona roja",
+    "fecha": "2026-04-19T10:30:00Z",
+    "estado": "pendiente"
+  }
+]

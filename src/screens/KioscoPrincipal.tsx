@@ -10,11 +10,15 @@ import {
   HiSignal,
 } from "react-icons/hi2"
 import { MdNfc } from "react-icons/md"
+import { CheckCircle2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { KioscoHeader } from "@/components/KioscoHeader"
 import { cn } from "@/lib/utils"
 import type { Screen } from "@/App"
+import { validarQrToken } from "@/lib/quiosco"
+import { api } from "@/lib/api"
+import type { Visita } from "@/lib/types"
 
 interface Props {
   onNavigate: (screen: Screen) => void
@@ -22,10 +26,20 @@ interface Props {
 
 type ScanStatus = "idle" | "authorized" | "denied"
 
+// pantalla principal del quiosco con escaneo QR y opciones de registro alternativo
 export function KioscoPrincipal({ onNavigate }: Props) {
   const [time, setTime] = useState(new Date())
   const [scanStatus, setScanStatus] = useState<ScanStatus>("idle")
+  const [qrToken, setQrToken] = useState("")
+  const [scanResult, setScanResult] = useState<{
+    visita: Visita
+    resultado: "permitido" | "denegado"
+    motivo?: string
+  } | null>(null)
+  const [scanError, setScanError] = useState<string | null>(null)
+  const [scanning, setScanning] = useState(false)
 
+  // actualiza el reloj del header cada segundo
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(id)
@@ -42,11 +56,45 @@ export function KioscoPrincipal({ onNavigate }: Props) {
     month: "long",
   })
 
-  const handleScanDemo = () => {
-    if (scanStatus !== "idle") return
-    const next: ScanStatus = Math.random() > 0.4 ? "authorized" : "denied"
-    setScanStatus(next)
-    setTimeout(() => setScanStatus("idle"), 3200)
+  // valida el token QR contra el backend y registra el resultado del scan
+  const handleValidateQr = async () => {
+    if (!qrToken.trim() || scanning) return
+    setScanning(true)
+    setScanError(null)
+    setScanResult(null)
+    try {
+      const visita = await validarQrToken(qrToken.trim())
+      const resultado: "permitido" | "denegado" =
+        visita.status === "cancelada" || visita.status === "expirada"
+          ? "denegado"
+          : "permitido"
+      const motivo = resultado === "denegado" ? `Visita ${visita.status}` : undefined
+
+      // Registrar el scan en el backend
+      await api.post(`/api/visitas/qr/${qrToken.trim()}/scan`, {
+        puntoId: "kiosco-principal",
+        resultado,
+        motivo,
+      })
+      setScanResult({ visita, resultado, motivo })
+      setScanStatus(resultado === "permitido" ? "authorized" : "denied")
+      setTimeout(() => {
+        setScanStatus("idle")
+        setScanResult(null)
+        setQrToken("")
+      }, 5000)
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "QR inválido"
+      setScanError(message)
+      setScanStatus("denied")
+      setTimeout(() => {
+        setScanStatus("idle")
+        setScanError(null)
+        setQrToken("")
+      }, 4000)
+    } finally {
+      setScanning(false)
+    }
   }
 
   return (
@@ -86,7 +134,7 @@ export function KioscoPrincipal({ onNavigate }: Props) {
         </div>
 
         {/* Scanner */}
-        <div className="relative" onClick={handleScanDemo} role="button" tabIndex={0}>
+        <div className="relative">
           {/* Top badge */}
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 z-10">
             <Badge
@@ -197,6 +245,59 @@ export function KioscoPrincipal({ onNavigate }: Props) {
             <HiOutlineXCircle className="size-4" />
             Acceso Denegado
           </span>
+        </div>
+
+        {/* QR token input + Validar */}
+        <div className="w-full max-w-md flex flex-col gap-2">
+          <div className="flex gap-2">
+            <input
+              value={qrToken}
+              onChange={(e) => setQrToken(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleValidateQr()
+              }}
+              placeholder="Pega el token del QR"
+              disabled={scanning}
+              className="flex-1 h-12 px-4 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+            />
+            <Button
+              onClick={() => void handleValidateQr()}
+              disabled={scanning || !qrToken.trim()}
+              className="h-12 px-5 text-sm font-bold"
+            >
+              {scanning ? "Validando…" : "Validar"}
+            </Button>
+          </div>
+          <p className="text-[10px] text-gray-400 text-center">
+            En producción, el visitante muestra el código en su móvil para escanearse.
+          </p>
+          {scanResult && (
+            <div
+              className={cn(
+                "p-3 rounded-lg text-sm font-medium",
+                scanResult.resultado === "permitido"
+                  ? "bg-green-50 text-green-800 border border-green-200"
+                  : "bg-red-50 text-red-800 border border-red-200",
+              )}
+            >
+              {scanResult.resultado === "permitido" ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <CheckCircle2 size={20} />
+                  Acceso permitido — {scanResult.visita.invitado.nombre}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5">
+                  <XCircle size={20} />
+                  Acceso denegado — {scanResult.motivo ?? "Validación fallida"}
+                </span>
+              )}
+            </div>
+          )}
+          {scanError && (
+            <div className="p-3 rounded-lg bg-red-50 text-red-800 text-sm font-medium border border-red-200">
+              {scanError}
+            </div>
+          )}
         </div>
 
         {/* CTA Buttons */}

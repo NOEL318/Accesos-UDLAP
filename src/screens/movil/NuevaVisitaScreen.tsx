@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, QrCode, MapPin } from "lucide-react"
+import { ArrowLeft, QrCode, MapPin, Car, PersonStanding, User, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,12 +9,28 @@ import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 import { puntosAcceso } from "./data"
 import { QrCode as QrCodeSvg } from "./QrCode"
+import { useVisitas } from "./hooks/useVisitas"
+import { ApiError } from "@/lib/api"
 
 type VisitaTipo = "visita" | "personal"
 type ModoEntrada = "automovil" | "peatonal"
 
+// junta fecha y hora en un string ISO usando hoy como default si vienen vacios
+function combineDateTimeIso(fecha: string, hora: string): string {
+  // fecha "YYYY-MM-DD" or empty; hora "HH:MM" or empty.
+  // If fecha is empty, default to today.
+  const today = new Date()
+  const datePart = fecha?.match(/^\d{4}-\d{2}-\d{2}$/)
+    ? fecha
+    : `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`
+  const timePart = hora?.match(/^\d{2}:\d{2}$/) ? hora : "12:00"
+  return new Date(`${datePart}T${timePart}:00`).toISOString()
+}
+
+// pantalla para registrar una visita nueva con datos, punto de acceso y modo de entrada
 export function NuevaVisitaScreen() {
   const navigate = useNavigate()
+  const { create } = useVisitas()
   const [tipo, setTipo] = useState<VisitaTipo>("visita")
   const [nombre, setNombre] = useState("")
   const [fecha, setFecha] = useState("")
@@ -24,9 +40,30 @@ export function NuevaVisitaScreen() {
   const [modo, setModo] = useState<ModoEntrada>("automovil")
   const [showPuntos, setShowPuntos] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [createdId, setCreatedId] = useState<string | null>(null)
 
-  const handleGenerar = () => {
-    setShowSuccess(true)
+  // crea la visita en el backend y abre el sheet de exito con el QR
+  const handleGenerar = async () => {
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      const fechaHora = combineDateTimeIso(fecha, hora)
+      const created = await create({
+        invitado: { nombre, categoria: tipo === "personal" ? "personal" : "visita" },
+        tipoAcceso: modo === "automovil" ? "vehicular" : "peatonal",
+        puntoAcceso,
+        fechaHora,
+        multiplesEntradas,
+      })
+      setCreatedId(created._id)
+      setShowSuccess(true)
+    } catch (err) {
+      setSubmitError(err instanceof ApiError ? err.message : "No se pudo registrar")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -168,18 +205,19 @@ export function NuevaVisitaScreen() {
               </Label>
               <div className="flex rounded-xl overflow-hidden border border-gray-200">
                 {([
-                  { value: "automovil", label: "🚗 Automóvil" },
-                  { value: "peatonal", label: "🚶 Peatonal" },
-                ] as { value: ModoEntrada; label: string }[]).map(({ value, label }) => (
+                  { value: "automovil", label: "Automóvil", icon: "car" },
+                  { value: "peatonal", label: "Peatonal", icon: "walk" },
+                ] as { value: ModoEntrada; label: string; icon: "car" | "walk" }[]).map(({ value, label, icon }) => (
                   <button
                     key={value}
                     onClick={() => setModo(value)}
                     className={cn(
-                      "flex-1 py-2.5 text-sm font-bold transition-colors",
+                      "flex-1 py-2.5 text-sm font-bold transition-colors flex items-center justify-center gap-2",
                       modo === value ? "text-white" : "text-gray-500 bg-gray-50"
                     )}
                     style={modo === value ? { background: "#ea580c" } : {}}
                   >
+                    {icon === "car" ? <Car size={16} /> : <PersonStanding size={16} />}
                     {label}
                   </button>
                 ))}
@@ -192,14 +230,21 @@ export function NuevaVisitaScreen() {
             </p>
           </div>
 
+          {submitError && (
+            <div className="my-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              {submitError}
+            </div>
+          )}
+
           {/* Generate button */}
           <Button
             onClick={handleGenerar}
-            className="w-full h-13 rounded-xl text-white font-bold text-base gap-3"
+            disabled={submitting}
+            className="w-full h-13 rounded-xl text-white font-bold text-base gap-3 disabled:opacity-50"
             style={{ background: "linear-gradient(135deg,#ea580c,#c2410c)", border: "none", height: 52 }}
           >
             <QrCode className="size-5" />
-            Generar Código de Acceso
+            {submitting ? "Registrando…" : "Generar Código de Acceso"}
           </Button>
         </div>
       </div>
@@ -217,7 +262,7 @@ export function NuevaVisitaScreen() {
               className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
               style={{ background: "#f0fdf4" }}
             >
-              <span className="text-3xl">👤</span>
+              <User size={32} className="text-green-600" />
             </div>
             <h2 className="text-lg font-black text-gray-900 mb-1">
               Visita registrada
@@ -231,10 +276,14 @@ export function NuevaVisitaScreen() {
             <QrCodeSvg size={180} color="#ea580c" />
 
             <button
-              onClick={() => { setShowSuccess(false); navigate("/movil/visitas") }}
-              className="mt-6 w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center"
+              onClick={() => {
+                setShowSuccess(false)
+                if (createdId) navigate(`/movil/visitas/${createdId}`)
+                else navigate("/movil/visitas")
+              }}
+              className="mt-6 w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600"
             >
-              ✕
+              <X size={16} />
             </button>
           </div>
         </SheetContent>

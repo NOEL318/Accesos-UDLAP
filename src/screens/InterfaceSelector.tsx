@@ -53,17 +53,18 @@ const interfaces = [
     id: "colegios",
     title: "Colegios Residenciales",
     subtitle: "Acceso Residencial",
-    description: "Control de entrada · Registro de residentes",
+    description: "Dashboard · Residentes · Visitas · Verificación · Edificios",
     Icon: Building2,
     path: "/colegios",
-    available: false,
-    accent: "#7c3aed",
-    glow: "rgba(124,58,237,0.4)",
-    tag: "Próximamente",
-    screens: "",
+    available: true,
+    accent: "#ea580c",
+    glow: "rgba(234,88,12,0.4)",
+    tag: "Disponible",
+    screens: "9 pantallas",
   },
 ]
 
+// pantalla inicial que muestra las interfaces disponibles (quiosco, móvil, ipad, colegios)
 export function InterfaceSelector() {
   const navigate = useNavigate()
 
@@ -177,6 +178,7 @@ interface CardProps {
   onClick: () => void
 }
 
+// tarjeta de cada interfaz con efecto hover y acción de navegación
 function InterfaceCard({
   title,
   subtitle,

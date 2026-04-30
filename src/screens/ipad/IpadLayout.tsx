@@ -5,16 +5,16 @@ import { IpadDataProvider } from "./context/IpadDataContext"
 import { IpadSidebar } from "./IpadSidebar"
 import { IpadHeader } from "./IpadHeader"
 
+// layout raiz del iPad que envuelve todo en el provider de sesion
 export function IpadLayout() {
   return (
     <IpadSessionProvider>
-      <IpadDataProvider>
-        <IpadLayoutInner />
-      </IpadDataProvider>
+      <IpadLayoutInner />
     </IpadSessionProvider>
   )
 }
 
+// arma el shell con sidebar/header y redirige segun haya sesion o no
 function IpadLayoutInner() {
   const { pathname } = useLocation()
   const { officer } = useIpadSession()
@@ -38,14 +38,16 @@ function IpadLayoutInner() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
-      <IpadSidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <IpadHeader onMenuClick={() => setMobileOpen(true)} />
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <Outlet />
-        </main>
+    <IpadDataProvider>
+      <div className="min-h-screen bg-slate-50 flex">
+        <IpadSidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
+        <div className="flex-1 flex flex-col min-w-0">
+          <IpadHeader onMenuClick={() => setMobileOpen(true)} />
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </IpadDataProvider>
   )
 }

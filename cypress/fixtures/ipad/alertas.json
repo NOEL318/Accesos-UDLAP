@@ -1,0 +1,19 @@
+[
+  {
+    "id": "al1",
+    "tipo": "placa_detectada",
+    "severidad": "info",
+    "descripcion": "Placa Detectada: ABC-1234 · Ingreso por Puerta 1",
+    "vehiculoId": "v1",
+    "timestamp": "2026-04-21T14:22:00Z",
+    "estado": "activa"
+  },
+  {
+    "id": "al2",
+    "tipo": "incidente",
+    "severidad": "moderada",
+    "descripcion": "Objetos perdidos en Biblioteca",
+    "timestamp": "2026-04-21T14:05:00Z",
+    "estado": "activa"
+  }
+]

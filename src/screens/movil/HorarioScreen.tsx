@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
 import { BottomNav } from "./BottomNav"
-import { horarioMock } from "./data"
+import { useHorario } from "./hooks/useHorario"
 
 const DAYS = ["Lu.", "Ma.", "Mi.", "Ju.", "Vi.", "Sá."]
 const START_HOUR = 7
@@ -20,8 +20,10 @@ const timeLabels = Array.from(
   }
 )
 
+// pantalla con el horario semanal del estudiante en formato de cuadricula por hora y dia
 export function HorarioScreen() {
   const navigate = useNavigate()
+  const { data: clases, loading } = useHorario()
   const totalHeight = TOTAL_HOURS * SLOT_HEIGHT
 
   return (
@@ -46,6 +48,11 @@ export function HorarioScreen() {
 
       {/* Grid scroll area */}
       <div className="flex-1 overflow-y-auto pb-[68px]">
+        {loading && clases.length === 0 && (
+          <div className="px-5 py-6 text-center text-xs font-bold text-gray-400">
+            Cargando…
+          </div>
+        )}
         <div className="flex px-5 pt-2">
           {/* Time axis */}
           <div className="w-10 shrink-0 relative" style={{ height: totalHeight }}>
@@ -74,7 +81,7 @@ export function HorarioScreen() {
             {/* Day columns with class blocks */}
             {DAYS.map((_, dayIdx) => (
               <div key={dayIdx} className="flex-1 relative">
-                {horarioMock
+                {clases
                   .filter((c) => c.dia === dayIdx)
                   .map((clase, ci) => {
                     const top = (clase.inicio - START_HOUR) * SLOT_HEIGHT

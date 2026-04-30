@@ -1,0 +1,7 @@
+[
+  {
+    "id": "d1",
+    "libroId": "b2",
+    "libro": { "id": "b2", "titulo": "Cálculo Integral", "autor": "James Stewart", "icon": "book-green" }
+  }
+]
