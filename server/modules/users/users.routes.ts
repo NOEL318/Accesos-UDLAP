@@ -1,10 +1,10 @@
 import { Router } from "express"
 import { z } from "zod"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth } from "../../middlewares/auth"
-import { ApiError } from "../../lib/errors"
-import { User } from "./user.model"
-import { serializeUser } from "../auth/auth.service"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth } from "../../middlewares/auth.js"
+import { ApiError } from "../../lib/errors.js"
+import { User } from "./user.model.js"
+import { serializeUser } from "../auth/auth.service.js"
 
 export const usersRoutes = Router()
 usersRoutes.use(requireAuth)

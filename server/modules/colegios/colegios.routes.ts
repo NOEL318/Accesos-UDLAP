@@ -1,6 +1,6 @@
 import { Router } from "express"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth, requireRole } from "../../middlewares/auth"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth, requireRole } from "../../middlewares/auth.js"
 import {
   createMovimiento,
   getEdificio,
@@ -9,7 +9,7 @@ import {
   listMovimientos,
   listResidentes,
   patchResidente,
-} from "./colegios.service"
+} from "./colegios.service.js"
 
 export const colegiosRoutes = Router()
 colegiosRoutes.use(requireAuth, requireRole("adminColegios", "admin"))

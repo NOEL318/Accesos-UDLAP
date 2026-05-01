@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { ApiError } from "../../lib/errors"
-import { User } from "../users/user.model"
-import { MenuItem } from "./menuItem.model"
-import { Orden } from "./orden.model"
+import { ApiError } from "../../lib/errors.js"
+import { User } from "../users/user.model.js"
+import { MenuItem } from "./menuItem.model.js"
+import { Orden } from "./orden.model.js"
 
 const createOrdenInput = z.object({
   items: z

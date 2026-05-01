@@ -1,6 +1,6 @@
 import { Router } from "express"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth, requireRole } from "../../middlewares/auth"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth, requireRole } from "../../middlewares/auth.js"
 import {
   autorizarSalida,
   buscarPorMatricula,
@@ -12,9 +12,9 @@ import {
   listVehiculos,
   patchVehiculo,
   permitirAcceso,
-} from "./vehiculos.service"
-import { createMulta, listMultas, patchMulta } from "./multas.service"
-import { PuntoControl } from "./punto.model"
+} from "./vehiculos.service.js"
+import { createMulta, listMultas, patchMulta } from "./multas.service.js"
+import { PuntoControl } from "./punto.model.js"
 
 export const vehiculosRoutes = Router()
 vehiculosRoutes.use(requireAuth)

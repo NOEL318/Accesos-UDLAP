@@ -1,7 +1,7 @@
 import { Router } from "express"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth, requireRole } from "../../middlewares/auth"
-import { createOrden, listMenu, listOrdenes } from "./comedor.service"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth, requireRole } from "../../middlewares/auth.js"
+import { createOrden, listMenu, listOrdenes } from "./comedor.service.js"
 
 export const comedorRoutes = Router()
 

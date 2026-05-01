@@ -1,9 +1,9 @@
 import { Router } from "express"
 import { z } from "zod"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { ApiError } from "../../lib/errors"
-import { requireAuth, requireRole } from "../../middlewares/auth"
-import { RegistroAlternativo } from "./registro.model"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { ApiError } from "../../lib/errors.js"
+import { requireAuth, requireRole } from "../../middlewares/auth.js"
+import { RegistroAlternativo } from "./registro.model.js"
 
 export const quioscoRoutes = Router()
 quioscoRoutes.use(requireAuth, requireRole("oficial", "admin"))

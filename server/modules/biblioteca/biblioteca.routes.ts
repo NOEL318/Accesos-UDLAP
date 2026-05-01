@@ -1,6 +1,6 @@
 import { Router } from "express"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth } from "../../middlewares/auth"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth } from "../../middlewares/auth.js"
 import {
   agregarDeseo,
   crearPrestamo,
@@ -9,7 +9,7 @@ import {
   listDeseos,
   listLibros,
   listPrestamos,
-} from "./biblioteca.service"
+} from "./biblioteca.service.js"
 
 export const bibliotecaRoutes = Router()
 bibliotecaRoutes.use(requireAuth)

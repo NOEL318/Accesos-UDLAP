@@ -1,7 +1,7 @@
 import { Router } from "express"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth } from "../../middlewares/auth"
-import { Clase } from "./clase.model"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth } from "../../middlewares/auth.js"
+import { Clase } from "./clase.model.js"
 
 export const horarioRoutes = Router()
 horarioRoutes.use(requireAuth)

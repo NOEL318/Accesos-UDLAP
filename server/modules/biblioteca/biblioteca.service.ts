@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { ApiError } from "../../lib/errors"
-import { Libro } from "./libro.model"
-import { Prestamo } from "./prestamo.model"
-import { Deseo } from "./deseo.model"
+import { ApiError } from "../../lib/errors.js"
+import { Libro } from "./libro.model.js"
+import { Prestamo } from "./prestamo.model.js"
+import { Deseo } from "./deseo.model.js"
 
 // busca libros por titulo/autor opcionalmente filtrando solo los que tienen copias libres
 export async function listLibros(filter: { search?: string; disponibles?: boolean }) {

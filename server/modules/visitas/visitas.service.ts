@@ -1,7 +1,7 @@
 import crypto from "node:crypto"
 import { z } from "zod"
-import { Visita, type VisitaStatus } from "./visita.model"
-import { ApiError } from "../../lib/errors"
+import { Visita, type VisitaStatus } from "./visita.model.js"
+import { ApiError } from "../../lib/errors.js"
 
 const createInput = z.object({
   invitado: z.object({

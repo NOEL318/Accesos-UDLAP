@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { ApiError } from "../../lib/errors"
-import { Edificio } from "./edificio.model"
-import { Movimiento } from "./movimiento.model"
-import { User } from "../users/user.model"
+import { ApiError } from "../../lib/errors.js"
+import { Edificio } from "./edificio.model.js"
+import { Movimiento } from "./movimiento.model.js"
+import { User } from "../users/user.model.js"
 
 // trae todos los edificios y le calcula a cada uno cuantos residentes tiene en campus
 export async function listEdificios() {

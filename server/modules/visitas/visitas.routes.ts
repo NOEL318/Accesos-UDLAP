@@ -1,6 +1,6 @@
 import { Router } from "express"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth, requireRole } from "../../middlewares/auth"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth, requireRole } from "../../middlewares/auth.js"
 import {
   createVisita,
   deleteVisita,
@@ -9,7 +9,7 @@ import {
   listVisitasDe,
   patchVisita,
   scanVisita,
-} from "./visitas.service"
+} from "./visitas.service.js"
 
 export const visitasRoutes = Router()
 

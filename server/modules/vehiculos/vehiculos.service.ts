@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { ApiError } from "../../lib/errors"
-import { Vehiculo } from "./vehiculo.model"
-import { EventoAcceso } from "./evento.model"
-import { Alerta } from "../alertas/alerta.model"
+import { ApiError } from "../../lib/errors.js"
+import { Vehiculo } from "./vehiculo.model.js"
+import { EventoAcceso } from "./evento.model.js"
+import { Alerta } from "../alertas/alerta.model.js"
 
 const upsertInput = z.object({
   matricula: z.string().min(1),

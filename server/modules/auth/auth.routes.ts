@@ -1,9 +1,9 @@
 import { Router } from "express"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { ApiError } from "../../lib/errors"
-import { requireAuth } from "../../middlewares/auth"
-import { login, loginPin, logoutByToken, serializeUser } from "./auth.service"
-import { User } from "../users/user.model"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { ApiError } from "../../lib/errors.js"
+import { requireAuth } from "../../middlewares/auth.js"
+import { login, loginPin, logoutByToken, serializeUser } from "./auth.service.js"
+import { User } from "../users/user.model.js"
 
 export const authRoutes = Router()
 

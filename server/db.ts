@@ -1,5 +1,5 @@
 import mongoose from "mongoose"
-import { env } from "./env"
+import { env } from "./env.js"
 
 type Cached = { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null }
 

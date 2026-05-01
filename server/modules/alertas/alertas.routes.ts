@@ -1,9 +1,9 @@
 import { Router } from "express"
 import { z } from "zod"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth, requireRole } from "../../middlewares/auth"
-import { ApiError } from "../../lib/errors"
-import { Alerta } from "./alerta.model"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth, requireRole } from "../../middlewares/auth.js"
+import { ApiError } from "../../lib/errors.js"
+import { Alerta } from "./alerta.model.js"
 
 export const alertasRoutes = Router()
 alertasRoutes.use(requireAuth)

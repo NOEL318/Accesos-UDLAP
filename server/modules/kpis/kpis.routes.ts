@@ -1,12 +1,12 @@
 import { Router } from "express"
-import { asyncHandler } from "../../lib/asyncHandler"
-import { requireAuth, requireRole } from "../../middlewares/auth"
-import { Vehiculo } from "../vehiculos/vehiculo.model"
-import { EventoAcceso } from "../vehiculos/evento.model"
-import { Alerta } from "../alertas/alerta.model"
-import { Edificio } from "../colegios/edificio.model"
-import { Movimiento } from "../colegios/movimiento.model"
-import { User } from "../users/user.model"
+import { asyncHandler } from "../../lib/asyncHandler.js"
+import { requireAuth, requireRole } from "../../middlewares/auth.js"
+import { Vehiculo } from "../vehiculos/vehiculo.model.js"
+import { EventoAcceso } from "../vehiculos/evento.model.js"
+import { Alerta } from "../alertas/alerta.model.js"
+import { Edificio } from "../colegios/edificio.model.js"
+import { Movimiento } from "../colegios/movimiento.model.js"
+import { User } from "../users/user.model.js"
 
 export const kpisRoutes = Router()
 kpisRoutes.use(requireAuth)

@@ -1,6 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express"
 import { ZodError } from "zod"
-import { ApiError } from "../lib/errors"
+import { ApiError } from "../lib/errors.js"
 
 // middleware fallback para rutas que no matchean ningun handler
 export const notFoundHandler: RequestHandler = (_req, res) => {

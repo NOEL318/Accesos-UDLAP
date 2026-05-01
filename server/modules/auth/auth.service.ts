@@ -1,7 +1,7 @@
 import crypto from "node:crypto"
 import { z } from "zod"
-import { User } from "../users/user.model"
-import { ApiError } from "../../lib/errors"
+import { User } from "../users/user.model.js"
+import { ApiError } from "../../lib/errors.js"
 
 const loginInput = z.object({
   email: z.string().email(),

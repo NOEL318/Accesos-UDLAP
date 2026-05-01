@@ -1,24 +1,24 @@
 import express from "express"
 import cors from "cors"
-import { env } from "./env"
-import { connectDb } from "./db"
-import { errorHandler, notFoundHandler } from "./middlewares/error"
-import { authRoutes } from "./modules/auth/auth.routes"
-import { visitasRoutes } from "./modules/visitas/visitas.routes"
-import { usersRoutes } from "./modules/users/users.routes"
-import { horarioRoutes } from "./modules/horario/horario.routes"
-import { comedorRoutes } from "./modules/comedor/comedor.routes"
-import { bibliotecaRoutes } from "./modules/biblioteca/biblioteca.routes"
+import { env } from "./env.js"
+import { connectDb } from "./db.js"
+import { errorHandler, notFoundHandler } from "./middlewares/error.js"
+import { authRoutes } from "./modules/auth/auth.routes.js"
+import { visitasRoutes } from "./modules/visitas/visitas.routes.js"
+import { usersRoutes } from "./modules/users/users.routes.js"
+import { horarioRoutes } from "./modules/horario/horario.routes.js"
+import { comedorRoutes } from "./modules/comedor/comedor.routes.js"
+import { bibliotecaRoutes } from "./modules/biblioteca/biblioteca.routes.js"
 import {
   vehiculosRoutes,
   multasRoutes,
   eventosRoutes,
   puntosRoutes,
-} from "./modules/vehiculos/vehiculos.routes"
-import { alertasRoutes } from "./modules/alertas/alertas.routes"
-import { kpisRoutes } from "./modules/kpis/kpis.routes"
-import { quioscoRoutes } from "./modules/quiosco/quiosco.routes"
-import { colegiosRoutes } from "./modules/colegios/colegios.routes"
+} from "./modules/vehiculos/vehiculos.routes.js"
+import { alertasRoutes } from "./modules/alertas/alertas.routes.js"
+import { kpisRoutes } from "./modules/kpis/kpis.routes.js"
+import { quioscoRoutes } from "./modules/quiosco/quiosco.routes.js"
+import { colegiosRoutes } from "./modules/colegios/colegios.routes.js"
 
 // arma la app de express con cors, json, conexion a mongo y todas las rutas montadas
 export function createApp() {

@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express"
-import { findUserBySessionToken } from "../modules/auth/auth.service"
-import type { Role } from "../modules/users/user.model"
-import { ApiError } from "../lib/errors"
+import { findUserBySessionToken } from "../modules/auth/auth.service.js"
+import type { Role } from "../modules/users/user.model.js"
+import { ApiError } from "../lib/errors.js"
 
 declare module "express-serve-static-core" {
   interface Request {

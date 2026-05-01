@@ -1,8 +1,8 @@
 import { z } from "zod"
-import { ApiError } from "../../lib/errors"
-import { Multa } from "./multa.model"
-import { Vehiculo } from "./vehiculo.model"
-import { Alerta } from "../alertas/alerta.model"
+import { ApiError } from "../../lib/errors.js"
+import { Multa } from "./multa.model.js"
+import { Vehiculo } from "./vehiculo.model.js"
+import { Alerta } from "../alertas/alerta.model.js"
 
 const createMultaInput = z.object({
   vehiculoId: z.string().min(1),
