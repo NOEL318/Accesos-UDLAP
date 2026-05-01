@@ -6,9 +6,6 @@ import { errorHandler, notFoundHandler } from "./middlewares/error.js"
 import { authRoutes } from "./modules/auth/auth.routes.js"
 import { visitasRoutes } from "./modules/visitas/visitas.routes.js"
 import { usersRoutes } from "./modules/users/users.routes.js"
-import { horarioRoutes } from "./modules/horario/horario.routes.js"
-import { comedorRoutes } from "./modules/comedor/comedor.routes.js"
-import { bibliotecaRoutes } from "./modules/biblioteca/biblioteca.routes.js"
 import {
   vehiculosRoutes,
   multasRoutes,
@@ -48,9 +45,6 @@ export function createApp() {
   app.use("/api/auth", authRoutes)
   app.use("/api/users", usersRoutes)
   app.use("/api/visitas", visitasRoutes)
-  app.use("/api/horario", horarioRoutes)
-  app.use("/api/comedor", comedorRoutes)
-  app.use("/api/biblioteca", bibliotecaRoutes)
   app.use("/api/vehiculos", vehiculosRoutes)
   app.use("/api/multas", multasRoutes)
   app.use("/api/eventos-acceso", eventosRoutes)

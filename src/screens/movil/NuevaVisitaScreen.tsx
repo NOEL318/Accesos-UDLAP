@@ -1,6 +1,16 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { ArrowLeft, QrCode, MapPin, Car, PersonStanding, User, X } from "lucide-react"
+import { useLocation, useNavigate } from "react-router-dom"
+import {
+  ArrowLeft,
+  QrCode,
+  MapPin,
+  Car,
+  PersonStanding,
+  User,
+  X,
+  Camera,
+  RefreshCw,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,6 +21,7 @@ import { puntosAcceso } from "./data"
 import { QrCode as QrCodeSvg } from "./QrCode"
 import { useVisitas } from "./hooks/useVisitas"
 import { ApiError } from "@/lib/api"
+import { CameraCapture } from "@/components/CameraCapture"
 
 type VisitaTipo = "visita" | "personal"
 type ModoEntrada = "automovil" | "peatonal"
@@ -30,9 +41,11 @@ function combineDateTimeIso(fecha: string, hora: string): string {
 // pantalla para registrar una visita nueva con datos, punto de acceso y modo de entrada
 export function NuevaVisitaScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { create } = useVisitas()
+  const prefill = (location.state as { frecuente?: { nombre?: string } } | null)?.frecuente
   const [tipo, setTipo] = useState<VisitaTipo>("visita")
-  const [nombre, setNombre] = useState("")
+  const [nombre, setNombre] = useState(prefill?.nombre ?? "")
   const [fecha, setFecha] = useState("")
   const [hora, setHora] = useState("")
   const [multiplesEntradas, setMultiplesEntradas] = useState(false)
@@ -43,6 +56,8 @@ export function NuevaVisitaScreen() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [createdId, setCreatedId] = useState<string | null>(null)
+  const [foto, setFoto] = useState<string | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
 
   // crea la visita en el backend y abre el sheet de exito con el QR
   const handleGenerar = async () => {
@@ -51,7 +66,11 @@ export function NuevaVisitaScreen() {
     try {
       const fechaHora = combineDateTimeIso(fecha, hora)
       const created = await create({
-        invitado: { nombre, categoria: tipo === "personal" ? "personal" : "visita" },
+        invitado: {
+          nombre,
+          categoria: tipo === "personal" ? "personal" : "visita",
+          foto: foto ?? undefined,
+        },
         tipoAcceso: modo === "automovil" ? "vehicular" : "peatonal",
         puntoAcceso,
         fechaHora,
@@ -230,6 +249,45 @@ export function NuevaVisitaScreen() {
             </p>
           </div>
 
+          {/* Foto opcional del invitado */}
+          <div className="bg-white rounded-2xl p-4 shadow-sm space-y-3">
+            <h2 className="text-sm font-black text-gray-800">
+              Foto del invitado <span className="text-gray-400 font-normal">(opcional)</span>
+            </h2>
+            <button
+              type="button"
+              onClick={() => setCameraOpen(true)}
+              className={cn(
+                "w-full overflow-hidden rounded-xl border-2 border-dashed flex items-center justify-center transition-colors",
+                foto
+                  ? "border-emerald-300 bg-emerald-50/40"
+                  : "border-gray-200 bg-gray-50 hover:border-orange-300 hover:bg-orange-50/40"
+              )}
+              style={{ aspectRatio: "4/3" }}
+            >
+              {foto ? (
+                <img src={foto} alt="Invitado" className="size-full object-cover" />
+              ) : (
+                <div className="flex flex-col items-center gap-1.5 text-gray-500">
+                  <Camera className="size-7" />
+                  <span className="text-xs font-bold uppercase tracking-widest">
+                    Tomar foto
+                  </span>
+                </div>
+              )}
+            </button>
+            {foto && (
+              <button
+                type="button"
+                onClick={() => setCameraOpen(true)}
+                className="text-xs font-bold text-orange-600 inline-flex items-center gap-1"
+              >
+                <RefreshCw className="size-3" />
+                Repetir foto
+              </button>
+            )}
+          </div>
+
           {submitError && (
             <div className="my-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
               {submitError}
@@ -288,6 +346,15 @@ export function NuevaVisitaScreen() {
           </div>
         </SheetContent>
       </Sheet>
+
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={(b64) => setFoto(b64)}
+        title="Foto del invitado"
+        hint="Toma una foto que ayude a identificar al invitado en el acceso."
+        facingMode="environment"
+      />
     </>
   )
 }

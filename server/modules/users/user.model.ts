@@ -17,7 +17,6 @@ const profileEstudianteSchema = new Schema(
     studentId: { type: String, required: true },
     programa: String,
     semestre: Number,
-    saldoComedor: { type: Number, default: 0 },
     frecuentes: [{ nombre: String, iniciales: String }],
   },
   { _id: false }

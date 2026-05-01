@@ -1,9 +1,5 @@
 import { connectDb } from "./db.js"
 import { User } from "./modules/users/user.model.js"
-import { Clase } from "./modules/horario/clase.model.js"
-import { MenuItem } from "./modules/comedor/menuItem.model.js"
-import { Libro } from "./modules/biblioteca/libro.model.js"
-import { Prestamo } from "./modules/biblioteca/prestamo.model.js"
 import { Vehiculo } from "./modules/vehiculos/vehiculo.model.js"
 import { Multa } from "./modules/vehiculos/multa.model.js"
 import { EventoAcceso } from "./modules/vehiculos/evento.model.js"
@@ -38,7 +34,6 @@ async function main() {
           studentId: "181278",
           programa: "Ing. en Sistemas",
           semestre: 6,
-          saldoComedor: 450,
           frecuentes: [
             { nombre: "Juan López", iniciales: "JL" },
             { nombre: "Ana S.", iniciales: "AS" },
@@ -69,78 +64,6 @@ async function main() {
   console.log("   - admin@udlap.mx / demo1234")
   console.log("   - estudiante@udlap.mx / demo1234")
   console.log("   - seguridad@udlap.mx / demo1234")
-
-  // ---- Limpiar y sembrar comedor / biblioteca / horario ----
-  await Promise.all([
-    Clase.deleteMany({}),
-    MenuItem.deleteMany({}),
-    Libro.deleteMany({}),
-    Prestamo.deleteMany({}),
-  ])
-
-  const estudiante = await User.findOne({ email: "estudiante@udlap.mx" })
-  if (!estudiante) throw new Error("Estudiante demo no creado")
-  const studentId = estudiante._id
-
-  // Horario semanal del estudiante demo
-  await Clase.insertMany([
-    { userId: studentId, dia: 0, inicio: 7, fin: 8.5, materia: "Cálculo Integral", salon: "CF301" },
-    { userId: studentId, dia: 0, inicio: 9, fin: 10, materia: "Física II", salon: "CF201" },
-    { userId: studentId, dia: 0, inicio: 11, fin: 12.5, materia: "Programación", salon: "CH105" },
-    { userId: studentId, dia: 0, inicio: 14, fin: 15, materia: "Inglés B2", salon: "EI201" },
-    { userId: studentId, dia: 1, inicio: 13, fin: 14, materia: "Ética Prof.", salon: "HM302" },
-    { userId: studentId, dia: 1, inicio: 14, fin: 15, materia: "Estadística", salon: "CF402" },
-    { userId: studentId, dia: 1, inicio: 16, fin: 17.5, materia: "Lab Física", salon: "LF101" },
-    { userId: studentId, dia: 2, inicio: 7, fin: 8, materia: "Cálculo Integral", salon: "CF301" },
-    { userId: studentId, dia: 2, inicio: 9, fin: 10, materia: "Física II", salon: "CF201" },
-    { userId: studentId, dia: 2, inicio: 11, fin: 12.5, materia: "Programación", salon: "CH105" },
-    { userId: studentId, dia: 2, inicio: 14, fin: 15, materia: "Inglés B2", salon: "EI201" },
-    { userId: studentId, dia: 3, inicio: 13, fin: 14.5, materia: "Ética Prof.", salon: "HM302" },
-    { userId: studentId, dia: 3, inicio: 16, fin: 17.5, materia: "Estadística", salon: "CF402" },
-    { userId: studentId, dia: 4, inicio: 8, fin: 9.5, materia: "Lab Programación", salon: "CH102" },
-    { userId: studentId, dia: 5, inicio: 8, fin: 9.5, materia: "Tutoría", salon: "DF201" },
-  ])
-
-  // Menú de comedor
-  await MenuItem.insertMany([
-    { nombre: "Bowl Mediterráneo", precio: 95, descripcion: "Quinoa, garbanzos, pepino, tomate cherry", categoria: "principal", icon: "salad" },
-    { nombre: "Ensalada del Chef", precio: 63, descripcion: "Lechuga mixta, pollo a la plancha, aderezo cesar", categoria: "economico", icon: "sandwich" },
-    { nombre: "Crema de Tomate", precio: 45, descripcion: "Sopa crema con crutones y albahaca fresca", categoria: "vegano", icon: "soup" },
-    { nombre: "Pollo a la Plancha", precio: 85, descripcion: "Con arroz integral y verduras al vapor", categoria: "principal", icon: "drumstick" },
-    { nombre: "Agua de Jamaica", precio: 25, descripcion: "500 ml, sin azúcar añadida", categoria: "economico", icon: "juice" },
-    { nombre: "Tazón Vegano", precio: 90, descripcion: "Tofu salteado, edamame, arroz", categoria: "vegano", icon: "vegan" },
-    { nombre: "Hamburguesa UDLAP", precio: 110, descripcion: "Carne 150g, queso, papas", categoria: "principal", icon: "burger" },
-    { nombre: "Smoothie Verde", precio: 55, descripcion: "Espinaca, plátano, manzana", categoria: "vegano", icon: "smoothie" },
-  ])
-
-  // Libros (icon como nombre simbolico para mapper de iconos)
-  const libros = await Libro.insertMany([
-    { titulo: "Sistemas Operativos Modernos", autor: "Andrew S. Tanenbaum", icon: "book-blue", totalCopias: 3, copiasDisponibles: 2 },
-    { titulo: "Cálculo Integral", autor: "James Stewart", icon: "book-green", totalCopias: 2, copiasDisponibles: 1 },
-    { titulo: "Artificial Intelligence: A Modern Approach", autor: "Stuart Russell", icon: "book-orange", totalCopias: 2, copiasDisponibles: 2 },
-    { titulo: "Architecture Design Patterns", autor: "Martin Fowler", icon: "book-red", totalCopias: 1, copiasDisponibles: 1 },
-    { titulo: "C++ Programming Language", autor: "Bjarne Stroustrup", icon: "book-black", totalCopias: 2, copiasDisponibles: 2 },
-    { titulo: "Clean Code", autor: "Robert C. Martin", icon: "book-brown", totalCopias: 3, copiasDisponibles: 3 },
-    { titulo: "Domain-Driven Design", autor: "Eric Evans", icon: "book-yellow", totalCopias: 1, copiasDisponibles: 1 },
-  ])
-
-  // Crear 2 préstamos activos para el estudiante demo
-  await Prestamo.insertMany([
-    {
-      userId: studentId,
-      libroId: libros[0]._id,
-      fechaPrestamo: new Date(),
-      fechaVencimiento: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    },
-    {
-      userId: studentId,
-      libroId: libros[1]._id,
-      fechaPrestamo: new Date(),
-      fechaVencimiento: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-    },
-  ])
-
-  console.log(`Seed extendido: ${15} clases, ${8} ítems comedor, ${libros.length} libros, 2 préstamos`)
 
   // ---- Plan 3 — iPad seguridad: vehículos, multas, eventos, puntos, alertas ----
   await Promise.all([
@@ -358,7 +281,7 @@ async function main() {
       scope: "vehicular",
       tipo: "incidente",
       severidad: "moderada",
-      descripcion: "Objetos perdidos en Biblioteca",
+      descripcion: "Objetos perdidos en zona deportiva",
       timestamp: new Date(ahora - 90 * 60 * 1000),
       estado: "activa",
     },

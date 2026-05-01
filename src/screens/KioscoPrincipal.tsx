@@ -8,17 +8,19 @@ import {
   HiOutlineCheckCircle,
   HiOutlineXCircle,
   HiSignal,
+  HiOutlineMapPin,
+  HiOutlineClock,
+  HiXMark,
 } from "react-icons/hi2"
 import { MdNfc } from "react-icons/md"
-import { CheckCircle2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { KioscoHeader } from "@/components/KioscoHeader"
 import { cn } from "@/lib/utils"
 import type { Screen } from "@/App"
-import { validarQrToken } from "@/lib/quiosco"
-import { api } from "@/lib/api"
-import type { Visita } from "@/lib/types"
 
 interface Props {
   onNavigate: (screen: Screen) => void
@@ -29,15 +31,15 @@ type ScanStatus = "idle" | "authorized" | "denied"
 // pantalla principal del quiosco con escaneo QR y opciones de registro alternativo
 export function KioscoPrincipal({ onNavigate }: Props) {
   const [time, setTime] = useState(new Date())
-  const [scanStatus, setScanStatus] = useState<ScanStatus>("idle")
-  const [qrToken, setQrToken] = useState("")
-  const [scanResult, setScanResult] = useState<{
-    visita: Visita
-    resultado: "permitido" | "denegado"
-    motivo?: string
-  } | null>(null)
-  const [scanError, setScanError] = useState<string | null>(null)
-  const [scanning, setScanning] = useState(false)
+  const [scanStatus] = useState<ScanStatus>("idle")
+  const [senderoOpen, setSenderoOpen] = useState(false)
+  const [senderoForm, setSenderoForm] = useState({
+    origen: "",
+    destino: "",
+    contacto: "",
+    notas: "",
+  })
+  const [senderoConfirm, setSenderoConfirm] = useState<{ folio: string; eta: string } | null>(null)
 
   // actualiza el reloj del header cada segundo
   useEffect(() => {
@@ -56,45 +58,19 @@ export function KioscoPrincipal({ onNavigate }: Props) {
     month: "long",
   })
 
-  // valida el token QR contra el backend y registra el resultado del scan
-  const handleValidateQr = async () => {
-    if (!qrToken.trim() || scanning) return
-    setScanning(true)
-    setScanError(null)
-    setScanResult(null)
-    try {
-      const visita = await validarQrToken(qrToken.trim())
-      const resultado: "permitido" | "denegado" =
-        visita.status === "cancelada" || visita.status === "expirada"
-          ? "denegado"
-          : "permitido"
-      const motivo = resultado === "denegado" ? `Visita ${visita.status}` : undefined
+  // valida los campos y simula la solicitud de sendero seguro
+  function handleSenderoSubmit() {
+    if (!senderoForm.origen.trim() || !senderoForm.destino.trim()) return
+    const folio = `SS-${Math.floor(100000 + Math.random() * 900000)}`
+    const eta = `${4 + Math.floor(Math.random() * 6)} min`
+    setSenderoConfirm({ folio, eta })
+  }
 
-      // Registrar el scan en el backend
-      await api.post(`/api/visitas/qr/${qrToken.trim()}/scan`, {
-        puntoId: "kiosco-principal",
-        resultado,
-        motivo,
-      })
-      setScanResult({ visita, resultado, motivo })
-      setScanStatus(resultado === "permitido" ? "authorized" : "denied")
-      setTimeout(() => {
-        setScanStatus("idle")
-        setScanResult(null)
-        setQrToken("")
-      }, 5000)
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "QR inválido"
-      setScanError(message)
-      setScanStatus("denied")
-      setTimeout(() => {
-        setScanStatus("idle")
-        setScanError(null)
-        setQrToken("")
-      }, 4000)
-    } finally {
-      setScanning(false)
-    }
+  // cierra el modal de sendero seguro y limpia el estado
+  function closeSendero() {
+    setSenderoOpen(false)
+    setSenderoConfirm(null)
+    setSenderoForm({ origen: "", destino: "", contacto: "", notas: "" })
   }
 
   return (
@@ -247,59 +223,6 @@ export function KioscoPrincipal({ onNavigate }: Props) {
           </span>
         </div>
 
-        {/* QR token input + Validar */}
-        <div className="w-full max-w-md flex flex-col gap-2">
-          <div className="flex gap-2">
-            <input
-              value={qrToken}
-              onChange={(e) => setQrToken(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void handleValidateQr()
-              }}
-              placeholder="Pega el token del QR"
-              disabled={scanning}
-              className="flex-1 h-12 px-4 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
-            />
-            <Button
-              onClick={() => void handleValidateQr()}
-              disabled={scanning || !qrToken.trim()}
-              className="h-12 px-5 text-sm font-bold"
-            >
-              {scanning ? "Validando…" : "Validar"}
-            </Button>
-          </div>
-          <p className="text-[10px] text-gray-400 text-center">
-            En producción, el visitante muestra el código en su móvil para escanearse.
-          </p>
-          {scanResult && (
-            <div
-              className={cn(
-                "p-3 rounded-lg text-sm font-medium",
-                scanResult.resultado === "permitido"
-                  ? "bg-green-50 text-green-800 border border-green-200"
-                  : "bg-red-50 text-red-800 border border-red-200",
-              )}
-            >
-              {scanResult.resultado === "permitido" ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <CheckCircle2 size={20} />
-                  Acceso permitido — {scanResult.visita.invitado.nombre}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5">
-                  <XCircle size={20} />
-                  Acceso denegado — {scanResult.motivo ?? "Validación fallida"}
-                </span>
-              )}
-            </div>
-          )}
-          {scanError && (
-            <div className="p-3 rounded-lg bg-red-50 text-red-800 text-sm font-medium border border-red-200">
-              {scanError}
-            </div>
-          )}
-        </div>
-
         {/* CTA Buttons */}
         <div className="flex flex-col gap-3 w-full max-w-sm">
           <Button
@@ -321,12 +244,142 @@ export function KioscoPrincipal({ onNavigate }: Props) {
               border: "none",
               boxShadow: "0 10px 25px rgba(15,45,94,0.35)",
             }}
+            onClick={() => setSenderoOpen(true)}
           >
             <HiOutlineShieldCheck className="size-5" />
             SOLICITAR SENDERO SEGURO
           </Button>
         </div>
       </main>
+
+      {senderoOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 px-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeSendero()
+          }}
+        >
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-black text-[#0f2d5e] tracking-tight">
+                  Solicitar Sendero Seguro
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Un oficial te acompañará entre dos puntos del campus.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeSendero}
+                aria-label="Cerrar"
+                className="rounded-full p-1.5 text-gray-500 hover:bg-gray-100"
+              >
+                <HiXMark className="size-5" />
+              </button>
+            </div>
+
+            {senderoConfirm ? (
+              <div className="px-6 py-6 space-y-4 text-center">
+                <div className="mx-auto size-14 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                  <HiOutlineCheckCircle className="size-8 text-emerald-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-[#0f2d5e]">Solicitud confirmada</div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    Folio <span className="font-mono font-bold text-[#0f2d5e]">{senderoConfirm.folio}</span>
+                  </div>
+                  <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded-full px-3 py-1.5">
+                    <HiOutlineClock className="size-3.5 text-orange-600" />
+                    Oficial llegando en aprox. <span className="font-bold">{senderoConfirm.eta}</span>
+                  </div>
+                </div>
+                <Button onClick={closeSendero} className="w-full h-11 font-bold">
+                  Listo
+                </Button>
+              </div>
+            ) : (
+              <div className="px-6 py-5 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                      Origen
+                    </Label>
+                    <div className="relative mt-1">
+                      <HiOutlineMapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                      <Input
+                        value={senderoForm.origen}
+                        onChange={(e) =>
+                          setSenderoForm((f) => ({ ...f, origen: e.target.value }))
+                        }
+                        placeholder="Ej. Biblioteca"
+                        className="pl-9 h-11"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                      Destino
+                    </Label>
+                    <div className="relative mt-1">
+                      <HiOutlineMapPin className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-400" />
+                      <Input
+                        value={senderoForm.destino}
+                        onChange={(e) =>
+                          setSenderoForm((f) => ({ ...f, destino: e.target.value }))
+                        }
+                        placeholder="Ej. Estacionamiento 4"
+                        className="pl-9 h-11"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    Teléfono o ID UDLAP
+                  </Label>
+                  <Input
+                    value={senderoForm.contacto}
+                    onChange={(e) =>
+                      setSenderoForm((f) => ({ ...f, contacto: e.target.value }))
+                    }
+                    placeholder="Opcional — para localizarte"
+                    className="mt-1 h-11"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                    Notas
+                  </Label>
+                  <Textarea
+                    value={senderoForm.notas}
+                    onChange={(e) =>
+                      setSenderoForm((f) => ({ ...f, notas: e.target.value }))
+                    }
+                    placeholder="Indica si llevas pertenencias, vas con alguien, etc."
+                    className="mt-1 min-h-[80px]"
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <Button variant="outline" onClick={closeSendero}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSenderoSubmit}
+                    disabled={!senderoForm.origen.trim() || !senderoForm.destino.trim()}
+                    className="bg-[#1e4d9e] hover:bg-[#0f2d5e] text-white"
+                  >
+                    <HiOutlineShieldCheck className="size-4" />
+                    Confirmar solicitud
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Footer ───────────────────────────────────────── */}
       <footer className="flex items-center justify-between px-8 py-4 bg-white border-t border-gray-100 shrink-0">

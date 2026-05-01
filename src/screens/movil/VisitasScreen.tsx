@@ -171,7 +171,16 @@ export function VisitasScreen() {
                   </p>
                   <div className="flex gap-3 overflow-x-auto pb-1 -mx-5 px-5 scrollbar-none">
                     {frecuentes.map((v, idx) => (
-                      <div key={`${v.iniciales}-${idx}`} className="flex flex-col items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        key={`${v.iniciales}-${idx}`}
+                        onClick={() =>
+                          navigate("/movil/visitas/nueva", {
+                            state: { frecuente: { nombre: v.nombre } },
+                          })
+                        }
+                        className="flex flex-col items-center gap-1.5 shrink-0 active:scale-95 transition-transform"
+                      >
                         <div
                           className="w-12 h-12 rounded-full flex items-center justify-center text-white font-black text-sm"
                           style={{
@@ -183,7 +192,7 @@ export function VisitasScreen() {
                         <span className="text-[10px] text-gray-500 font-medium w-12 text-center truncate">
                           {v.nombre.split(" ")[0]}
                         </span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -233,7 +242,11 @@ export function VisitasScreen() {
                       <p className="text-xs text-gray-400">Visitante frecuente</p>
                     </div>
                     <button
-                      onClick={() => navigate("/movil/visitas/nueva")}
+                      onClick={() =>
+                        navigate("/movil/visitas/nueva", {
+                          state: { frecuente: { nombre: v.nombre } },
+                        })
+                      }
                       className="text-xs font-bold px-3 py-1.5 rounded-lg"
                       style={{ background: "#fff3ee", color: "#ea580c" }}
                     >

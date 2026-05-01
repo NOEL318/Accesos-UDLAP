@@ -3,7 +3,12 @@ import { api } from "@/lib/api"
 import type { Visita, VisitaStatus } from "@/lib/types"
 
 interface NuevaVisitaInput {
-  invitado: { nombre: string; tipoId?: string; categoria?: Visita["invitado"]["categoria"] }
+  invitado: {
+    nombre: string
+    tipoId?: string
+    categoria?: Visita["invitado"]["categoria"]
+    foto?: string
+  }
   tipoAcceso: Visita["tipoAcceso"]
   puntoAcceso: string
   fechaHora: string

@@ -1,5 +1,6 @@
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { QrCode as QrCodeIcon, MapPin, Users, ChevronRight, Bell, Utensils, BookOpen } from "lucide-react"
+import { QrCode as QrCodeIcon, Users, ChevronRight, Bell, CheckCircle2 } from "lucide-react"
 import { BottomNav } from "./BottomNav"
 import { QrCode } from "./QrCode"
 import { useAuth } from "@/lib/auth-store"
@@ -7,7 +8,6 @@ import { useVisitas } from "./hooks/useVisitas"
 
 const quickActions = [
   { label: "Código QR", icon: QrCodeIcon, path: "/movil/qr-nfc", color: "#ea580c" },
-  { label: "GPS", icon: MapPin, path: "#", color: "#1e3a5f" },
   { label: "Visitas", icon: Users, path: "/movil/visitas", color: "#059669" },
 ]
 
@@ -28,6 +28,13 @@ export function DashboardScreen() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { data: visitas, loading } = useVisitas()
+  const [walletToast, setWalletToast] = useState(false)
+
+  useEffect(() => {
+    if (!walletToast) return
+    const id = setTimeout(() => setWalletToast(false), 2200)
+    return () => clearTimeout(id)
+  }, [walletToast])
 
   const proximaVisita =
     visitas.find((v) => v.status === "activa") ??
@@ -36,12 +43,21 @@ export function DashboardScreen() {
 
   const nombre = user?.nombre ?? ""
   const apellido = user?.apellido ?? ""
-  const saldoComedor = user?.profile?.estudiante?.saldoComedor ?? 0
   const studentId = user?.profile?.estudiante?.studentId ?? user?.id ?? ""
   const tipoLabel = user?.role === "estudiante" ? "Estudiante Licenciatura" : (user?.role ?? "")
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
+      {walletToast && (
+        <div
+          role="status"
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white shadow-lg"
+          style={{ background: "#0f172a" }}
+        >
+          <CheckCircle2 className="size-4 text-green-400" />
+          Añadido correctamente a Wallet
+        </div>
+      )}
       {/* Header */}
       <div
         className="px-5 pt-12 pb-6 flex items-center justify-between"
@@ -161,70 +177,13 @@ export function DashboardScreen() {
 
         {/* Wallet add button */}
         <button
+          onClick={() => setWalletToast(true)}
           className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white text-sm font-bold"
           style={{ background: "linear-gradient(135deg,#1c1c1e,#2c2c2e)" }}
         >
           <span className="text-lg leading-none">⊕</span>
           Añadir a Apple Wallet
         </button>
-
-        {/* Servicios destacados */}
-        <div>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
-            Servicios Destacados
-          </p>
-
-          {/* Estacionamiento card */}
-          <div
-            className="w-full rounded-2xl p-4 mb-3 text-white"
-            style={{ background: "linear-gradient(135deg,#ea580c 0%,#c2410c 100%)" }}
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="font-black text-base">Estacionamiento</p>
-                <p className="text-white/70 text-xs mt-0.5">Compra tu lugar en el campus</p>
-              </div>
-              <MapPin className="size-6 text-white/60" />
-            </div>
-            <button
-              className="mt-4 px-4 py-2 rounded-xl text-xs font-bold"
-              style={{ background: "rgba(255,255,255,0.2)" }}
-            >
-              Comprar Boleto
-            </button>
-          </div>
-
-          {/* Biblioteca + Comedor */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => navigate("/movil/biblioteca")}
-              className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white shadow-sm"
-            >
-              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
-                <BookOpen className="size-4 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm font-black text-gray-800">Biblioteca</p>
-                <p className="text-[11px] text-gray-400">2 libros en préstamo</p>
-              </div>
-            </button>
-
-            <button
-              onClick={() => navigate("/movil/comedor")}
-              className="flex flex-col items-start gap-2 p-4 rounded-2xl bg-white shadow-sm"
-            >
-              <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
-                <Utensils className="size-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-black text-gray-800">Comedor</p>
-                <p className="text-[11px] text-gray-400">
-                  ${saldoComedor.toFixed(2)} MXN
-                </p>
-              </div>
-            </button>
-          </div>
-        </div>
 
         {/* Recent activity preview */}
         <div>

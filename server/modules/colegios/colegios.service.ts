@@ -1,8 +1,11 @@
+import crypto from "node:crypto"
 import { z } from "zod"
 import { ApiError } from "../../lib/errors.js"
 import { Edificio } from "./edificio.model.js"
 import { Movimiento } from "./movimiento.model.js"
 import { User } from "../users/user.model.js"
+import { Visita } from "../visitas/visita.model.js"
+import { Alerta } from "../alertas/alerta.model.js"
 
 // trae todos los edificios y le calcula a cada uno cuantos residentes tiene en campus
 export async function listEdificios() {
@@ -85,28 +88,228 @@ export async function listMovimientos(filter: { residenteId?: string; desde?: st
   return Movimiento.find(q).sort({ hora: -1 }).limit(200).lean()
 }
 
-const createMovInput = z.object({
-  residenteUserId: z.string().min(1),
-  edificioId: z.string().min(1),
-  tipo: z.enum(["entrada", "salida"]),
-  estado: z.enum(["normal", "ebriedad", "autorizada", "alerta"]).default("normal"),
-})
+const createMovInput = z
+  .object({
+    residenteUserId: z.string().optional(),
+    residenteStudentId: z.string().optional(),
+    edificioId: z.string().min(1),
+    tipo: z.enum(["entrada", "salida"]),
+    estado: z.enum(["normal", "ebriedad", "autorizada", "alerta"]).default("normal"),
+  })
+  .refine((v) => v.residenteUserId || v.residenteStudentId, {
+    message: "Falta residenteUserId o residenteStudentId",
+  })
 
 // crea el movimiento y actualiza el estado del residente segun sea entrada o salida
 export async function createMovimiento(raw: unknown) {
   const input = createMovInput.parse(raw)
-  const m = await Movimiento.create(input)
-  // Si es entrada/salida, actualizar el estado del residente
+  let userId = input.residenteUserId
+  if (!userId && input.residenteStudentId) {
+    const u = await User.findOne({
+      role: "residente",
+      "profile.residente.studentId": input.residenteStudentId,
+    })
+      .select({ _id: 1 })
+      .lean()
+    if (!u) throw new ApiError("NOT_FOUND", "Residente no encontrado")
+    userId = String(u._id)
+  }
+  if (!userId) throw new ApiError("VALIDATION", "Residente no resuelto")
+
+  const m = await Movimiento.create({
+    residenteUserId: userId,
+    edificioId: input.edificioId,
+    tipo: input.tipo,
+    estado: input.estado,
+  })
   if (input.tipo === "entrada") {
     await User.updateOne(
-      { _id: input.residenteUserId, role: "residente" },
+      { _id: userId, role: "residente" },
       { $set: { "profile.residente.estado": "en_campus" } }
     )
   } else {
     await User.updateOne(
-      { _id: input.residenteUserId, role: "residente" },
+      { _id: userId, role: "residente" },
       { $set: { "profile.residente.estado": "fuera" } }
     )
   }
   return m.toObject()
+}
+
+// lista todas las visitas con edificio destino (bitacora del campus residencial)
+export async function listVisitasResidenciales(filter: {
+  edificioId?: string
+  desde?: string
+  hasta?: string
+  search?: string
+}) {
+  const q: Record<string, unknown> = { edificioDestinoId: { $exists: true, $ne: null } }
+  if (filter.edificioId) q.edificioDestinoId = filter.edificioId
+  if (filter.desde || filter.hasta) {
+    const r: Record<string, Date> = {}
+    if (filter.desde) r.$gte = new Date(filter.desde)
+    if (filter.hasta) r.$lte = new Date(filter.hasta)
+    q.fechaHora = r
+  }
+  if (filter.search) {
+    const re = new RegExp(filter.search, "i")
+    q.$or = [
+      { "invitado.nombre": re },
+      { "invitado.tipoId": re },
+      { puntoAcceso: re },
+    ]
+  }
+  return Visita.find(q).sort({ fechaHora: -1 }).limit(500).lean()
+}
+
+const createVisitaResidencialInput = z.object({
+  invitado: z.object({
+    nombre: z.string().min(1),
+    tipoId: z.string().optional(),
+    foto: z.string().optional(),
+    categoria: z
+      .enum(["servicio", "personal", "comunidad_udlap", "visita"])
+      .default("visita"),
+  }),
+  tipoAcceso: z.enum(["vehicular", "peatonal"]),
+  puntoAcceso: z.string().min(1),
+  fechaHora: z.coerce.date(),
+  multiplesEntradas: z.boolean().default(false),
+  comentarios: z.string().optional(),
+  edificioDestinoId: z.string().min(1),
+  estatusVisitante: z.enum(["sin_antecedentes", "con_antecedentes"]).optional(),
+})
+
+// crea una visita residencial registrada por el admin de colegios
+export async function createVisitaResidencial(adminUserId: string, raw: unknown) {
+  const input = createVisitaResidencialInput.parse(raw)
+  if (input.invitado.foto && input.invitado.foto.length > 600_000) {
+    throw new ApiError("VALIDATION", "Foto del visitante muy grande (>450KB)")
+  }
+  const qrToken = crypto.randomUUID()
+  const qrExpiraEn = input.multiplesEntradas
+    ? new Date(new Date(input.fechaHora).setHours(23, 59, 59, 999))
+    : new Date(input.fechaHora.getTime() + 1000 * 60 * 60 * 4)
+  const status =
+    input.fechaHora.getTime() <= Date.now() ? "activa" : "programada"
+  const doc = await Visita.create({
+    anfitrionId: adminUserId,
+    invitado: input.invitado,
+    tipoAcceso: input.tipoAcceso,
+    puntoAcceso: input.puntoAcceso,
+    fechaHora: input.fechaHora,
+    multiplesEntradas: input.multiplesEntradas,
+    comentarios: input.comentarios,
+    edificioDestinoId: input.edificioDestinoId,
+    estatusVisitante: input.estatusVisitante,
+    qrToken,
+    qrExpiraEn,
+    status,
+  })
+  return doc.toObject()
+}
+
+const verificacionInput = z.object({
+  resultado: z.enum(["permitido", "denegado"]),
+  ebriedad: z.boolean().default(false),
+  itemsProhibidos: z.boolean().default(false),
+  motivo: z.string().optional(),
+  puntoAcceso: z.string().optional(),
+  fotoEvidencia: z.string().optional(),
+})
+
+// registra el resultado de la inspeccion de una visita y actualiza su estado
+export async function registrarVerificacion(
+  visitaId: string,
+  oficialId: string,
+  raw: unknown
+) {
+  const input = verificacionInput.parse(raw)
+  if (input.fotoEvidencia && input.fotoEvidencia.length > 600_000) {
+    throw new ApiError("VALIDATION", "Foto de evidencia muy grande (>450KB)")
+  }
+  const visita = await Visita.findById(visitaId)
+  if (!visita) throw new ApiError("NOT_FOUND", "Visita no encontrada")
+
+  visita.scans.push({
+    puntoId: input.puntoAcceso ?? visita.puntoAcceso,
+    oficialId: oficialId as unknown as never,
+    timestamp: new Date(),
+    resultado: input.resultado,
+    motivo: input.motivo,
+  } as never)
+  if (input.resultado === "permitido" && visita.status === "programada") {
+    visita.status = "activa"
+  }
+  if (input.resultado === "denegado") {
+    visita.status = "cancelada"
+  }
+  await visita.save()
+
+  if (input.ebriedad || input.itemsProhibidos || input.resultado === "denegado") {
+    const tipo: "ebriedad" | "items_prohibidos" | "incidente" = input.ebriedad
+      ? "ebriedad"
+      : input.itemsProhibidos
+      ? "items_prohibidos"
+      : "incidente"
+    await Alerta.create({
+      scope: "residencial",
+      tipo,
+      severidad: input.resultado === "denegado" ? "alta" : "moderada",
+      descripcion:
+        input.motivo ||
+        (input.resultado === "denegado"
+          ? `Acceso denegado a ${visita.invitado?.nombre ?? "visitante"}`
+          : `Incidente en inspección: ${visita.invitado?.nombre ?? "visitante"}`),
+      refs: visita.edificioDestinoId
+        ? { edificioId: String(visita.edificioDestinoId) }
+        : undefined,
+    })
+  }
+
+  return visita.toObject()
+}
+
+const reporteIncidenteInput = z.object({
+  residenteStudentId: z.string().optional(),
+  residenteUserId: z.string().optional(),
+  edificioId: z.string().optional(),
+  tipo: z
+    .enum(["ebriedad", "items_prohibidos", "incidente", "ronda"])
+    .default("incidente"),
+  severidad: z
+    .enum(["critica", "alta", "moderada", "media", "info"])
+    .default("moderada"),
+  descripcion: z.string().min(1),
+  fotoEvidencia: z.string().optional(),
+})
+
+// reporta un incidente sobre un residente o edificio creando la alerta correspondiente
+export async function reportarIncidente(raw: unknown) {
+  const input = reporteIncidenteInput.parse(raw)
+  if (input.fotoEvidencia && input.fotoEvidencia.length > 600_000) {
+    throw new ApiError("VALIDATION", "Foto de evidencia muy grande (>450KB)")
+  }
+  let residenteUserId = input.residenteUserId
+  if (!residenteUserId && input.residenteStudentId) {
+    const u = await User.findOne({
+      role: "residente",
+      "profile.residente.studentId": input.residenteStudentId,
+    })
+      .select({ _id: 1 })
+      .lean()
+    residenteUserId = u ? String(u._id) : undefined
+  }
+  const refs: Record<string, string> = {}
+  if (residenteUserId) refs.residenteUserId = residenteUserId
+  if (input.edificioId) refs.edificioId = input.edificioId
+
+  const a = await Alerta.create({
+    scope: "residencial",
+    tipo: input.tipo,
+    severidad: input.severidad,
+    descripcion: input.descripcion,
+    refs: Object.keys(refs).length ? refs : undefined,
+  })
+  return a.toObject()
 }

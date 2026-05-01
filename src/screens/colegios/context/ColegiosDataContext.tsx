@@ -18,6 +18,7 @@ import { useColegiosResidentes } from "../hooks/useColegiosResidentes"
 import { useColegiosMovimientos } from "../hooks/useColegiosMovimientos"
 import { useColegiosAlertas } from "../hooks/useColegiosAlertas"
 import { useColegiosVisitas } from "../hooks/useColegiosVisitas"
+import { api } from "@/lib/api"
 
 interface DataValue {
   edificios: Edificio[]
@@ -26,6 +27,34 @@ interface DataValue {
   alertas: AlertaColegio[]
   visitas: Visita[]
   registrarVisita(input: Omit<Visita, "id">): Promise<Visita>
+  verificarVisita(
+    visitaId: string,
+    payload: {
+      resultado: "permitido" | "denegado"
+      ebriedad?: boolean
+      itemsProhibidos?: boolean
+      motivo?: string
+      puntoAcceso?: string
+      fotoEvidencia?: string
+    }
+  ): Promise<Visita>
+  registrarMovimientoResidente(input: {
+    residenteStudentId?: string
+    residenteUserId?: string
+    edificioId: string
+    tipo: "entrada" | "salida"
+    estado?: "normal" | "ebriedad" | "autorizada" | "alerta"
+  }): Promise<void>
+  reportarIncidente(input: {
+    residenteStudentId?: string
+    edificioId?: string
+    descripcion: string
+    tipo?: "ebriedad" | "items_prohibidos" | "incidente" | "ronda"
+    severidad?: "critica" | "alta" | "moderada" | "media" | "info"
+    fotoEvidencia?: string
+  }): Promise<void>
+  atenderAlerta(alertaId: string): Promise<void>
+  refrescarTodo(): Promise<void>
   ultimaVisita: Visita | null
   loading: boolean
 }
@@ -48,6 +77,8 @@ function makeAdaptResidente(edificiosByMongoId: Map<string, string>) {
     const edId = String(u.profile?.residente?.edificioId ?? "")
     return {
       id: u.profile?.residente?.studentId ?? String(u._id),
+      userId: String(u._id),
+      edificioId: edId,
       nombre: `${u.nombre} ${u.apellido}`,
       carrera: u.profile?.residente?.programa ?? "",
       semestre: u.profile?.residente?.semestre ?? 1,
@@ -149,6 +180,7 @@ export function ColegiosDataProvider({ children }: { children: ReactNode }) {
         multiplesEntradas: input.multipleEntrada,
         comentarios: input.comentarios,
         edificioDestinoId: input.edificioDestinoId,
+        estatusVisitante: input.estatusVisitante,
       }
       const created = await visHook.registrar(payload)
       const adapted = adaptVisita(created)
@@ -157,6 +189,76 @@ export function ColegiosDataProvider({ children }: { children: ReactNode }) {
     },
     [visHook]
   )
+
+  // verifica una visita registrando el resultado y refresca la bitacora
+  const verificar = useCallback(
+    async (
+      visitaId: string,
+      payload: {
+        resultado: "permitido" | "denegado"
+        ebriedad?: boolean
+        itemsProhibidos?: boolean
+        motivo?: string
+        puntoAcceso?: string
+        fotoEvidencia?: string
+      }
+    ) => {
+      const v = await visHook.verificar(visitaId, payload)
+      return adaptVisita(v)
+    },
+    [visHook]
+  )
+
+  // registra entrada/salida del residente y refresca movimientos y residentes
+  const registrarMov = useCallback(
+    async (input: {
+      residenteStudentId?: string
+      residenteUserId?: string
+      edificioId: string
+      tipo: "entrada" | "salida"
+      estado?: "normal" | "ebriedad" | "autorizada" | "alerta"
+    }) => {
+      await api.post("/api/colegios/movimientos", input)
+      await Promise.all([movHook.refresh(), resHook.refresh()])
+    },
+    [movHook, resHook]
+  )
+
+  // levanta un incidente sobre un residente o edificio y refresca alertas
+  const reportar = useCallback(
+    async (input: {
+      residenteStudentId?: string
+      edificioId?: string
+      descripcion: string
+      tipo?: "ebriedad" | "items_prohibidos" | "incidente" | "ronda"
+      severidad?: "critica" | "alta" | "moderada" | "media" | "info"
+      fotoEvidencia?: string
+    }) => {
+      await api.post("/api/colegios/incidentes", input)
+      await alHook.refresh()
+    },
+    [alHook]
+  )
+
+  // marca una alerta como atendida y refresca el listado
+  const atender = useCallback(
+    async (alertaId: string) => {
+      await api.patch(`/api/alertas/${alertaId}/atender`)
+      await alHook.refresh()
+    },
+    [alHook]
+  )
+
+  // refresca toda la data global del modulo colegios
+  const refrescarTodo = useCallback(async () => {
+    await Promise.all([
+      edHook.refresh(),
+      resHook.refresh(),
+      movHook.refresh(),
+      alHook.refresh(),
+      visHook.refresh(),
+    ])
+  }, [edHook, resHook, movHook, alHook, visHook])
 
   // adapta toda la data del backend a los shapes legacy y arma el value del contexto
   const value = useMemo<DataValue>(() => {
@@ -182,10 +284,28 @@ export function ColegiosDataProvider({ children }: { children: ReactNode }) {
       visitas: visHook.data.map(adaptVisita),
       ultimaVisita: ultima,
       registrarVisita: registrar,
+      verificarVisita: verificar,
+      registrarMovimientoResidente: registrarMov,
+      reportarIncidente: reportar,
+      atenderAlerta: atender,
+      refrescarTodo,
       loading:
         edHook.loading || resHook.loading || movHook.loading || alHook.loading,
     }
-  }, [edHook, resHook, movHook, alHook, visHook, ultima, registrar])
+  }, [
+    edHook,
+    resHook,
+    movHook,
+    alHook,
+    visHook,
+    ultima,
+    registrar,
+    verificar,
+    registrarMov,
+    reportar,
+    atender,
+    refrescarTodo,
+  ])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

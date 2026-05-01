@@ -12,7 +12,6 @@ export interface UserProfileEstudiante {
   studentId: string
   programa?: string
   semestre?: number
-  saldoComedor?: number
   frecuentes?: { nombre: string; iniciales: string }[]
 }
 

@@ -59,15 +59,50 @@ export function PuntoControlScreen() {
     setFeedback({ ok: true, msg: "Acceso permitido. Evento registrado en historial." })
     setCounter((c) => c + 1)
     setObservaciones("")
+    setIndicadores({ detectable: false, etilico: false, dificultad: false, coordinacion: false })
   }
 
-  // deniega el acceso con motivo y lo manda al historial
+  // deniega el acceso, integrando indicadores de riesgo activos al motivo
   function handleDenegar() {
     if (!vehiculo || !officer) return
-    const motivo = observaciones.trim() || "Sin motivo especificado"
+    const labels: Record<keyof typeof indicadores, string> = {
+      detectable: "Estado detectable",
+      etilico: "Aliento etílico",
+      dificultad: "Dificultad al hablar",
+      coordinacion: "Coordinación motriz",
+    }
+    const indicadoresActivos = (Object.keys(indicadores) as Array<keyof typeof indicadores>)
+      .filter((k) => indicadores[k])
+      .map((k) => labels[k])
+    const obs = observaciones.trim()
+    const partes = [
+      indicadoresActivos.length > 0 ? `Indicadores: ${indicadoresActivos.join(", ")}` : null,
+      obs || null,
+    ].filter(Boolean) as string[]
+    const motivo = partes.length > 0 ? partes.join(" — ") : "Sin motivo especificado"
     denegarAcceso(vehiculo.id, puntoId, officer.id, motivo)
     setFeedback({ ok: false, msg: `Acceso denegado: ${motivo}` })
     setObservaciones("")
+    setIndicadores({ detectable: false, etilico: false, dificultad: false, coordinacion: false })
+  }
+
+  // simula escaneo de ID/QR del padrón seleccionando un vehículo aleatorio
+  function handleEscanearId() {
+    if (vehiculos.length === 0) {
+      setFeedback({ ok: false, msg: "Sin vehículos en el padrón para escanear." })
+      return
+    }
+    const sample = vehiculos[Math.floor(Math.random() * vehiculos.length)]
+    setQuery(sample.matricula)
+    setFeedback({ ok: true, msg: `ID escaneado: ${sample.matricula} · ${sample.propietario.nombre}` })
+  }
+
+  // limpia el formulario para iniciar un nuevo registro de acceso
+  function handleNuevoRegistro() {
+    setQuery("")
+    setObservaciones("")
+    setIndicadores({ detectable: false, etilico: false, dificultad: false, coordinacion: false })
+    setFeedback(null)
   }
 
   return (
@@ -92,10 +127,10 @@ export function PuntoControlScreen() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleEscanearId}>
             <QrCode className="size-4" /> Escanear ID
           </Button>
-          <Button className="gap-2 bg-orange-600 hover:bg-orange-700">
+          <Button className="gap-2 bg-orange-600 hover:bg-orange-700" onClick={handleNuevoRegistro}>
             <Car className="size-4" /> Nuevo Registro
           </Button>
         </div>

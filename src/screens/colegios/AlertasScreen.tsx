@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { useColegiosData } from "./context/ColegiosDataContext"
 import type { AlertaColegio, SeveridadAlerta } from "./types"
+import { ApiError } from "@/lib/api"
 
 const tipoMeta: Record<AlertaColegio["tipo"], { label: string; icon: LucideIcon }> = {
   ebriedad: { label: "Ebriedad", icon: Wine },
@@ -31,8 +32,23 @@ type Filter = "todas" | "activas" | "atendidas"
 
 // pantalla con la lista de alertas e incidentes detectados en colegios residenciales
 export function AlertasScreen() {
-  const { alertas, edificios } = useColegiosData()
+  const { alertas, edificios, atenderAlerta } = useColegiosData()
   const [filter, setFilter] = useState<Filter>("activas")
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // marca una alerta como atendida y maneja el estado de carga
+  async function onAtender(id: string) {
+    setBusyId(id)
+    setError(null)
+    try {
+      await atenderAlerta(id)
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudo atender la alerta")
+    } finally {
+      setBusyId(null)
+    }
+  }
 
   // filtra las alertas según el tab seleccionado (activas, atendidas o todas)
   const visibles = useMemo(() => {
@@ -85,6 +101,12 @@ export function AlertasScreen() {
           </button>
         ))}
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="space-y-3">
         {visibles.length === 0 && (
@@ -156,10 +178,12 @@ export function AlertasScreen() {
                 {a.estado === "activa" && (
                   <Button
                     size="sm"
+                    onClick={() => onAtender(a.id)}
+                    disabled={busyId === a.id}
                     className="shrink-0 gap-1.5 bg-slate-900 hover:bg-slate-800"
                   >
                     <AlertTriangle className="size-3.5" />
-                    Protocolo
+                    {busyId === a.id ? "Procesando…" : "Atender"}
                   </Button>
                 )}
               </CardContent>

@@ -42,6 +42,12 @@ const accesoVariant: Record<string, "success" | "danger" | "warning"> = {
   revision: "warning",
 }
 
+// escapa un valor para CSV: comillas dobles dentro y wrap si tiene coma/comilla/salto
+function csvCell(val: string | number): string {
+  const s = String(val ?? "")
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+}
+
 // pantalla con el listado y gestion de vehiculos del campus
 export function VehiculosScreen() {
   const navigate = useNavigate()
@@ -67,6 +73,49 @@ export function VehiculosScreen() {
 
   const vencidos = vehiculos.filter((v) => !v.sello.vigente).length
   const conMultas = vehiculos.filter((v) => v.multasPendientes > 0).length
+
+  // genera y descarga un CSV con el listado actualmente filtrado
+  function handleExportCsv() {
+    if (filtered.length === 0) return
+    const header = [
+      "matricula",
+      "propietario",
+      "id_udlap",
+      "tipo",
+      "modelo",
+      "color",
+      "ubicacion",
+      "ocupantes",
+      "sello_vigente",
+      "sello_vence",
+      "multas_pendientes",
+      "estado_acceso",
+    ]
+    const rows = filtered.map((v) => [
+      v.matricula,
+      v.propietario.nombre,
+      v.propietario.idUdlap,
+      v.propietario.tipo,
+      v.modelo,
+      v.color,
+      v.ubicacion,
+      v.ocupantes,
+      v.sello.vigente ? "si" : "no",
+      v.sello.vence,
+      v.multasPendientes,
+      v.estadoAcceso,
+    ])
+    const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n")
+    const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `vehiculos-${new Date().toISOString().slice(0, 10)}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="space-y-5 max-w-[1400px] mx-auto">
@@ -113,7 +162,13 @@ export function VehiculosScreen() {
         title="Vehículos Registrados"
         action={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExportCsv}
+              disabled={filtered.length === 0}
+            >
               <Download className="size-3.5" /> Exportar CSV
             </Button>
             <Button size="sm" className="gap-1.5 bg-orange-600 hover:bg-orange-700" onClick={() => navigate("/ipad/multas")}>

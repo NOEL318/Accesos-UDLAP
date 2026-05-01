@@ -30,6 +30,7 @@ export function SalidasScreen() {
   const { vehiculos, autorizarSalida } = useIpadData()
   const { officer } = useIpadSession()
   const [filter, setFilter] = useState<"todos" | "multa" | "restriccion_academica" | "incidente">("todos")
+  const [feedback, setFeedback] = useState<string | null>(null)
 
   const bloqueados = vehiculos.filter((v) => v.bloqueoSalida)
   const filtrados = filter === "todos" ? bloqueados : bloqueados.filter((v) => v.bloqueoSalida?.motivo === filter)
@@ -38,7 +39,38 @@ export function SalidasScreen() {
   // autoriza la salida especial de un vehiculo bloqueado
   function handleAutorizar(id: string) {
     if (!officer) return
+    const v = vehiculos.find((x) => x.id === id)
     autorizarSalida(id, officer.id)
+    setFeedback(`Salida especial autorizada para ${v?.matricula ?? "vehículo"}.`)
+  }
+
+  // autoriza la salida del vehiculo destacado o el primero filtrado
+  function handleAutorizarDestacado() {
+    const target = destacado ?? filtrados[0]
+    if (!target) {
+      setFeedback("No hay vehículos bloqueados para autorizar.")
+      return
+    }
+    handleAutorizar(target.id)
+  }
+
+  // muestra el detalle del protocolo asociado al bloqueo
+  function handleVerProtocolo(id: string) {
+    const v = vehiculos.find((x) => x.id === id)
+    const m = v?.bloqueoSalida
+    if (!v || !m) return
+    setFeedback(`Protocolo ${motivoCopy[m.motivo].label} — ${v.matricula}: ${m.descripcion}`)
+  }
+
+  // genera un resumen del turno actual
+  function handleReporteTurno() {
+    const total = bloqueados.length
+    const multa = bloqueados.filter((b) => b.bloqueoSalida?.motivo === "multa").length
+    const rest = bloqueados.filter((b) => b.bloqueoSalida?.motivo === "restriccion_academica").length
+    const inc = bloqueados.filter((b) => b.bloqueoSalida?.motivo === "incidente").length
+    setFeedback(
+      `Reporte de turno (${officer?.turno ?? "actual"}): ${total} bloqueados · ${multa} multa · ${rest} restricción · ${inc} incidente.`
+    )
   }
 
   return (
@@ -91,7 +123,11 @@ export function SalidasScreen() {
                 {bloqueados.length} Bloqueados
               </div>
             </div>
-            <Button className="mt-3 w-full gap-2 bg-orange-600 hover:bg-orange-700">
+            <Button
+              className="mt-3 w-full gap-2 bg-orange-600 hover:bg-orange-700"
+              onClick={handleAutorizarDestacado}
+              disabled={bloqueados.length === 0}
+            >
               <ShieldCheck className="size-4" /> Autorizar Salida Especial
             </Button>
           </SectionCard>
@@ -148,7 +184,12 @@ export function SalidasScreen() {
                     {m.descripcion}
                   </div>
                   <div className="mt-3 flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1 gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 gap-1.5"
+                      onClick={() => handleVerProtocolo(v.id)}
+                    >
                       <Eye className="size-3.5" /> Ver Protocolo
                     </Button>
                     <Button
@@ -176,14 +217,33 @@ export function SalidasScreen() {
           </span>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5">
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleReporteTurno}>
             <AlertTriangle className="size-3.5" /> Reporte de Turno
           </Button>
-          <Button size="sm" className="gap-1.5 bg-orange-600 hover:bg-orange-700">
+          <Button
+            size="sm"
+            className="gap-1.5 bg-orange-600 hover:bg-orange-700"
+            onClick={handleAutorizarDestacado}
+            disabled={bloqueados.length === 0}
+          >
             <LogOutIcon className="size-3.5" /> Autorizar Salida Especial
           </Button>
         </div>
       </div>
+
+      {feedback && (
+        <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800 flex items-start justify-between gap-3">
+          <span className="flex-1">{feedback}</span>
+          <button
+            type="button"
+            onClick={() => setFeedback(null)}
+            className="text-orange-700 hover:text-orange-900 font-bold"
+            aria-label="Cerrar"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   )
 }

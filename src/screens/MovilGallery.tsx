@@ -13,7 +13,6 @@ const imageModules = import.meta.glob("/base/*.png", {
 const displayNames: Record<string, string> = {
   "udlaploginconaccesorápido": "Login con Acceso Rápido",
   "udlapdashboardestudiante": "Dashboard Estudiante",
-  "horario": "Horario",
   "perfil": "Perfil",
   "gestióndevisitas": "Gestión de Visitas",
   "formularioderegistrodevisitas": "Formulario de Registro",
@@ -21,8 +20,6 @@ const displayNames: Record<string, string> = {
   "visita_registrada": "Visita Registrada",
   "actividadreciente_visitas": "Actividad Reciente",
   "previsualizaciónqrynfc": "Prev. QR y NFC",
-  "comedoryrecargas": "Comedor y Recargas",
-  "bibliotecaudlap": "Biblioteca UDLAP",
   "component1": "Componente 1",
   "component2": "Componente 2",
 }
@@ -31,7 +28,6 @@ const displayNames: Record<string, string> = {
 const order = [
   "udlaploginconaccesorápido",
   "udlapdashboardestudiante",
-  "horario",
   "perfil",
   "gestióndevisitas",
   "formularioderegistrodevisitas",
@@ -39,8 +35,6 @@ const order = [
   "visita_registrada",
   "actividadreciente_visitas",
   "previsualizaciónqrynfc",
-  "comedoryrecargas",
-  "bibliotecaudlap",
   "component1",
   "component2",
 ]

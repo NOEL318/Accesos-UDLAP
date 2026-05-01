@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import {
   Globe,
@@ -11,48 +11,171 @@ import {
   ShieldCheck,
   MapPin,
   Camera,
+  RefreshCw,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useColegiosData } from "./context/ColegiosDataContext"
 import { useColegiosSession } from "./context/ColegiosSessionContext"
+import { CameraCapture } from "@/components/CameraCapture"
 
-// pantalla de verificación e inspección del visitante antes de permitir acceso
+// pantalla de verificación e inspección antes de permitir acceso al campus residencial
 export function VerificacionScreen() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { residentes, edificios } = useColegiosData()
+  const { residentes, edificios, visitas, verificarVisita, registrarMovimientoResidente } =
+    useColegiosData()
   const { officer } = useColegiosSession()
 
   const [ebriedad, setEbriedad] = useState(false)
-  const [items, setItems] = useState(true)
+  const [items, setItems] = useState(false)
   const [decision, setDecision] = useState<"pendiente" | "permitido" | "denegado">(
     "pendiente"
   )
+  const [motivo, setMotivo] = useState("")
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [evidencia, setEvidencia] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const lastResultRef = useRef<"permitido" | "denegado" | null>(null)
 
-  // busca el residente por id de la URL o cae a uno de demo si no existe
-  const visitante = useMemo(() => {
-    return residentes.find((r) => r.id === id) ?? residentes[7] // Juan Pablo
-  }, [id, residentes])
+  // resuelve si el id corresponde a una visita pendiente o a un residente
+  const visitaSeleccionada = useMemo(
+    () => (id ? visitas.find((v) => v.id === id) : null),
+    [id, visitas]
+  )
 
-  const colegioEntrada = edificios[0]
+  const residenteSeleccionado = useMemo(
+    () => (id ? residentes.find((r) => r.id === id) ?? null : null),
+    [id, residentes]
+  )
+
+  const visitante = visitaSeleccionada
+    ? {
+        kind: "visita" as const,
+        nombre: visitaSeleccionada.nombreCompleto,
+        avatar: visitaSeleccionada.foto ?? "",
+        idMostrar: visitaSeleccionada.tipoId || "INE / Credencial Oficial",
+        edificioId: visitaSeleccionada.edificioDestinoId,
+        sub:
+          visitaSeleccionada.categoria === "comunidad_udlap"
+            ? "Comunidad UDLAP"
+            : visitaSeleccionada.categoria === "servicio"
+            ? "Servicio / Proveedor"
+            : "Visita personal",
+      }
+    : residenteSeleccionado
+    ? {
+        kind: "residente" as const,
+        nombre: residenteSeleccionado.nombre,
+        avatar: residenteSeleccionado.avatar,
+        idMostrar: `ID: ${residenteSeleccionado.id}`,
+        edificioId: residenteSeleccionado.edificioId,
+        sub: `${residenteSeleccionado.carrera} · ${residenteSeleccionado.semestre}° Sem`,
+      }
+    : null
+
+  const colegioEntrada =
+    (visitante &&
+      edificios.find((e) => e.id === visitante.edificioId)) ||
+    edificios[0]
   const fecha = new Date()
   const fechaStr = fecha
     .toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })
     .replace(",", "")
   const horaStr = fecha.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
 
-  // marca acceso como permitido y navega a la pantalla de éxito
-  function permitir() {
-    setDecision("permitido")
-    setTimeout(() => navigate("/colegios/visitas/exitoso"), 600)
+  // permite acceso registrando en backend (verificacion o movimiento de entrada)
+  async function permitir() {
+    if (!visitante) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      if (visitante.kind === "visita" && visitaSeleccionada) {
+        await verificarVisita(visitaSeleccionada.id, {
+          resultado: "permitido",
+          ebriedad,
+          itemsProhibidos: items,
+          motivo: motivo || undefined,
+          puntoAcceso: officer.gate,
+          fotoEvidencia: evidencia ?? undefined,
+        })
+      } else if (visitante.kind === "residente" && residenteSeleccionado) {
+        await registrarMovimientoResidente({
+          residenteStudentId: residenteSeleccionado.id,
+          edificioId: residenteSeleccionado.edificioId || colegioEntrada.id,
+          tipo: "entrada",
+          estado: ebriedad ? "ebriedad" : items ? "alerta" : "normal",
+        })
+      }
+      setDecision("permitido")
+      lastResultRef.current = "permitido"
+      setTimeout(() => navigate("/colegios/visitas/exitoso"), 600)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo registrar")
+    } finally {
+      setSubmitting(false)
+    }
   }
-  // marca acceso como denegado y muestra mensaje de denegación
-  function denegar() {
-    setDecision("denegado")
+
+  // deniega acceso registrando en backend con motivo y/o foto
+  async function denegar() {
+    if (!visitante) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      if (visitante.kind === "visita" && visitaSeleccionada) {
+        await verificarVisita(visitaSeleccionada.id, {
+          resultado: "denegado",
+          ebriedad,
+          itemsProhibidos: items,
+          motivo: motivo || "Acceso denegado por el oficial de turno",
+          puntoAcceso: officer.gate,
+          fotoEvidencia: evidencia ?? undefined,
+        })
+      } else if (visitante.kind === "residente" && residenteSeleccionado) {
+        await registrarMovimientoResidente({
+          residenteStudentId: residenteSeleccionado.id,
+          edificioId: residenteSeleccionado.edificioId || colegioEntrada.id,
+          tipo: "entrada",
+          estado: "alerta",
+        })
+      }
+      setDecision("denegado")
+      lastResultRef.current = "denegado"
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo registrar")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (!visitante) {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+        No se encontró la visita o residente con id <code>{id}</code>. Regresa a{" "}
+        <button
+          type="button"
+          onClick={() => navigate("/colegios/visitas/bitacora")}
+          className="font-bold underline"
+        >
+          Bitácora
+        </button>{" "}
+        o{" "}
+        <button
+          type="button"
+          onClick={() => navigate("/colegios/residentes")}
+          className="font-bold underline"
+        >
+          Residentes
+        </button>
+        .
+      </div>
+    )
   }
 
   return (
@@ -73,7 +196,6 @@ export function VerificacionScreen() {
         </div>
       </header>
 
-      {/* Tarjeta principal del visitante */}
       <Card className="overflow-hidden p-0 gap-0">
         <CardContent className="flex flex-col gap-6 px-6 py-6 sm:flex-row sm:items-center">
           <div className="relative shrink-0">
@@ -92,33 +214,27 @@ export function VerificacionScreen() {
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-2xl font-black tracking-tight">{visitante.nombre}</h2>
               <span className="rounded-md bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-orange-700">
-                Student
+                {visitante.kind === "visita" ? "Visitante" : "Residente"}
               </span>
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              ID: {visitante.id} · Access Credential Active
+              {visitante.idMostrar} · {visitante.sub}
             </p>
-
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <Field label="Carrera" value={visitante.carrera} />
-              <Field label="Semestre" value={`${visitante.semestre}° Semestre`} />
-            </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                 <CheckCircle2 className="size-3.5" />
-                Exa-UDLAP Active
+                Identidad confirmada
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
                 <ShieldCheck className="size-3.5" />
-                Last Check: 5d 3h 20s
+                Inspección en curso
               </span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Inspección + Mapa */}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="p-0 gap-0 lg:col-span-2">
           <div className="flex items-center gap-2 border-b border-border px-6 py-4">
@@ -139,11 +255,23 @@ export function VerificacionScreen() {
             <InspectionRow
               icon={<Cigarette className="size-4" />}
               title="Items Prohibidos"
-              subtitle="Si el estudiante tiene artículos prohibidos (vape, alcohol, u otro)"
+              subtitle="Si el visitante o residente trae artículos prohibidos"
               checked={items}
               onChange={setItems}
               activeAccent="emerald"
             />
+
+            <div className="rounded-xl bg-slate-50 px-4 py-3">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Comentarios / Motivo
+              </div>
+              <Textarea
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Notas, motivo de denegación, observaciones…"
+                className="mt-2 min-h-20 bg-white"
+              />
+            </div>
           </div>
         </Card>
 
@@ -154,37 +282,80 @@ export function VerificacionScreen() {
             </div>
             <div className="mt-1 flex items-center gap-2 text-base font-bold">
               <MapPin className="size-4 text-orange-600" />
-              {colegioEntrada.nombre.replace("Edificio ", "")}
+              {colegioEntrada?.nombre.replace("Edificio ", "") ?? "—"}
             </div>
           </div>
-          <div className="relative h-44 bg-gradient-to-br from-slate-100 to-slate-200">
-            <div className="absolute inset-0 opacity-50"
-              style={{
-                backgroundImage:
-                  "linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)",
-                backgroundSize: "20px 20px",
-              }}
-            />
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <span className="relative flex size-8 items-center justify-center">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-orange-400 opacity-60" />
-                <span className="relative inline-flex size-4 rounded-full bg-orange-600" />
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 border-t border-border px-5 py-3 text-xs">
-            <Camera className="size-3.5 text-emerald-600" />
-            <span className="font-semibold">Cámara: Activa</span>
+
+          <button
+            type="button"
+            onClick={() => setCameraOpen(true)}
+            className={cn(
+              "relative h-44 w-full overflow-hidden text-left transition-colors",
+              evidencia
+                ? "bg-emerald-50"
+                : "bg-gradient-to-br from-slate-100 to-slate-200 hover:from-slate-200 hover:to-slate-300"
+            )}
+          >
+            {evidencia ? (
+              <img
+                src={evidencia}
+                alt="Evidencia capturada"
+                className="absolute inset-0 size-full object-cover"
+              />
+            ) : (
+              <>
+                <div className="absolute inset-0 opacity-50"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(to right, rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.05) 1px, transparent 1px)",
+                    backgroundSize: "20px 20px",
+                  }}
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-700">
+                  <Camera className="size-8" />
+                  <span className="text-xs font-bold uppercase tracking-widest">
+                    Tomar evidencia
+                  </span>
+                </div>
+              </>
+            )}
+          </button>
+
+          <div className="flex items-center justify-between gap-2 border-t border-border px-5 py-3 text-xs">
+            <span
+              className={cn(
+                "inline-flex items-center gap-1.5 font-semibold",
+                evidencia ? "text-emerald-600" : "text-slate-600"
+              )}
+            >
+              <Camera className="size-3.5" />
+              {evidencia ? "Evidencia capturada" : "Cámara: Lista"}
+            </span>
+            {evidencia && (
+              <button
+                type="button"
+                onClick={() => setEvidencia(null)}
+                className="inline-flex items-center gap-1 text-orange-600 hover:underline"
+              >
+                <RefreshCw className="size-3" />
+                Repetir
+              </button>
+            )}
           </div>
         </Card>
       </div>
 
-      {/* Acciones */}
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
         <Button
           size="lg"
           onClick={permitir}
-          disabled={decision === "denegado"}
+          disabled={submitting || decision === "denegado"}
           className={cn(
             "h-14 gap-2 text-base font-bold",
             decision === "permitido"
@@ -193,12 +364,13 @@ export function VerificacionScreen() {
           )}
         >
           <CheckCircle2 className="size-5" />
-          Permitir Acceso
+          {submitting && lastResultRef.current === null ? "Registrando…" : "Permitir Acceso"}
         </Button>
         <Button
           size="lg"
           variant="outline"
           onClick={denegar}
+          disabled={submitting || decision === "permitido"}
           className={cn(
             "h-14 gap-2 border-2 border-red-200 text-base font-bold text-red-600 hover:bg-red-50",
             decision === "denegado" && "bg-red-50"
@@ -211,22 +383,18 @@ export function VerificacionScreen() {
 
       {decision === "denegado" && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          Acceso denegado por <strong>{officer.nombre}</strong>. El visitante ha sido
-          notificado y se registró el evento en bitácora.
+          Acceso denegado por <strong>{officer.nombre}</strong>. Se registró el evento en
+          bitácora{ebriedad || items ? " y se levantó una alerta" : ""}.
         </div>
       )}
-    </div>
-  )
-}
 
-// celda de información del visitante con label y valor
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-slate-50 px-4 py-3">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        {label}
-      </div>
-      <div className="mt-1 text-sm font-bold">{value}</div>
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={(b64) => setEvidencia(b64)}
+        title="Evidencia de inspección"
+        hint="Toma una foto del visitante, su INE o cualquier ítem relevante."
+      />
     </div>
   )
 }

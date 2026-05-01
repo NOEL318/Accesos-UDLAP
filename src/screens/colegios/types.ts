@@ -12,6 +12,8 @@ export type EstadoResidente = "en_campus" | "fuera" | "invitado"
 
 export interface Residente {
   id: string
+  userId?: string
+  edificioId?: string
   nombre: string
   carrera: string
   semestre: number

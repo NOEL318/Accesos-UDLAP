@@ -1,14 +1,27 @@
 import { useMemo, useState } from "react"
-import { Search, Car, Footprints, ScrollText } from "lucide-react"
+import { Link } from "react-router-dom"
+import { Search, Car, Footprints, ScrollText, RefreshCw, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { useColegiosData } from "./context/ColegiosDataContext"
 
 // pantalla con la bitácora histórica de visitas al campus residencial
 export function BitacoraScreen() {
-  const { visitas, edificios } = useColegiosData()
+  const { visitas, edificios, refrescarTodo, loading } = useColegiosData()
   const [query, setQuery] = useState("")
+  const [refreshing, setRefreshing] = useState(false)
+
+  // refresca la bitacora pidiendo de nuevo al backend
+  async function refresh() {
+    setRefreshing(true)
+    try {
+      await refrescarTodo()
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   // filtra las visitas por nombre, tipo de ID o ubicación de entrada
   const filtered = useMemo(() => {
@@ -31,9 +44,22 @@ export function BitacoraScreen() {
             Histórico de accesos al campus residencial
           </p>
         </div>
-        <span className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-bold tabular-nums">
-          {visitas.length} registros
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-md bg-slate-100 px-3 py-1.5 text-xs font-bold tabular-nums">
+            {visitas.length} registros
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={refresh}
+            disabled={refreshing || loading}
+            className="gap-1.5"
+          >
+            <RefreshCw className={cn("size-3.5", (refreshing || loading) && "animate-spin")} />
+            Refrescar
+          </Button>
+        </div>
       </header>
 
       <div className="relative max-w-xl">
@@ -57,12 +83,13 @@ export function BitacoraScreen() {
                 <th className="px-6 py-4 text-left">Acceso</th>
                 <th className="px-6 py-4 text-left">Ubicación entrada</th>
                 <th className="px-6 py-4 text-left">Fecha</th>
+                <th className="px-6 py-4 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-muted-foreground">
+                  <td colSpan={7} className="px-6 py-12 text-center text-sm text-muted-foreground">
                     Sin resultados
                   </td>
                 </tr>
@@ -118,6 +145,15 @@ export function BitacoraScreen() {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Link
+                        to={`/colegios/visitas/verificacion/${v.id}`}
+                        className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-700 hover:bg-orange-100"
+                      >
+                        <ShieldCheck className="size-3.5" />
+                        Verificar
+                      </Link>
                     </td>
                   </tr>
                 )

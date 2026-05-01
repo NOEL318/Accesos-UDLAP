@@ -1,12 +1,11 @@
 import { Link, useLocation } from "react-router-dom"
-import { Home, Users, CreditCard, Calendar, User } from "lucide-react"
+import { Home, Users, CreditCard, User } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const tabs = [
   { label: "Inicio", icon: Home, path: "/movil/dashboard" },
   { label: "Visitas", icon: Users, path: "/movil/visitas" },
   { label: "ID Digital", icon: CreditCard, path: "/movil/qr-nfc" },
-  { label: "Horario", icon: Calendar, path: "/movil/horario" },
   { label: "Perfil", icon: User, path: "/movil/perfil" },
 ]
 

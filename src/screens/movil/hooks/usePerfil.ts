@@ -46,5 +46,23 @@ export function usePerfil() {
     [refresh]
   )
 
-  return { user, saving, error, update, changeAvatar }
+  // sube directamente un base64 (ya comprimido) como nuevo avatar y refresca
+  const changeAvatarBase64 = useCallback(
+    async (base64: string) => {
+      setSaving(true)
+      setError(null)
+      try {
+        await api.post("/api/users/me/avatar", { base64 })
+        await refresh()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Error")
+        throw e
+      } finally {
+        setSaving(false)
+      }
+    },
+    [refresh]
+  )
+
+  return { user, saving, error, update, changeAvatar, changeAvatarBase64 }
 }

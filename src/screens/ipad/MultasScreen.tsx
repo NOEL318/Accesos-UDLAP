@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import {
   Camera,
   FileCheck2,
   FileWarning,
   MapPin,
   Search,
+  Upload,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -23,6 +24,8 @@ import { useIpadSession } from "./context/IpadSessionContext"
 import { SectionCard } from "./components/SectionCard"
 import { StatusBadge } from "./components/StatusBadge"
 import { VehiculoPreviewCard } from "./components/VehiculoPreviewCard"
+import { CameraCapture } from "@/components/CameraCapture"
+import { compressToBase64 } from "@/lib/image"
 
 const TIPOS_INFRACCION = [
   "Estacionamiento prohibido",
@@ -43,8 +46,10 @@ export function MultasScreen() {
   const [monto, setMonto] = useState("850")
   const [comentarios, setComentarios] = useState("")
   const [evidencia, setEvidencia] = useState<string[]>([])
+  const [cameraOpen, setCameraOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // busca el vehiculo cuya matricula coincida con la placa tecleada
   const vehiculo = useMemo(
@@ -56,10 +61,34 @@ export function MultasScreen() {
     ? multas.filter((m) => m.vehiculoId === vehiculo.id).slice(0, 3)
     : []
 
-  // agrega una foto simulada a la lista de evidencia (max 3)
+  // abre la camara para capturar evidencia, respetando el limite de 3 fotos
   function handleAddEvidencia() {
     if (evidencia.length >= 3) return
-    setEvidencia((prev) => [...prev, `foto-${prev.length + 1}.jpg`])
+    setCameraOpen(true)
+  }
+
+  // dispara el selector de archivos para subir fotos desde la galería del dispositivo
+  function handlePickFiles() {
+    if (evidencia.length >= 3) return
+    fileInputRef.current?.click()
+  }
+
+  // procesa las fotos elegidas desde la galería y las añade comprimidas
+  async function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (e.target) e.target.value = ""
+    if (files.length === 0) return
+    try {
+      setError(null)
+      const restantes = Math.max(0, 3 - evidencia.length)
+      const seleccion = files.slice(0, restantes)
+      const procesadas = await Promise.all(
+        seleccion.map((f) => compressToBase64(f, { maxKB: 350, maxPx: 1280 }))
+      )
+      setEvidencia((prev) => [...prev, ...procesadas].slice(0, 3))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al procesar imagen")
+    }
   }
 
   // limpia el formulario para una nueva multa
@@ -169,31 +198,63 @@ export function MultasScreen() {
               <Label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
                 Evidencia Fotográfica
               </Label>
-              <button
-                type="button"
-                onClick={handleAddEvidencia}
-                className="mt-1 w-full rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition-colors hover:border-orange-400 hover:bg-orange-50"
-              >
+              <div className="mt-1 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center">
                 <Camera className="mx-auto size-6 text-muted-foreground" />
-                <div className="mt-2 text-sm font-semibold">Tocar para capturar o subir imágenes</div>
+                <div className="mt-2 text-sm font-semibold">Capturar o subir imágenes</div>
                 <div className="text-xs text-muted-foreground">Máximo 3 fotos (JPG, PNG)</div>
-              </button>
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={handleAddEvidencia}
+                    disabled={evidencia.length >= 3}
+                  >
+                    <Camera className="size-3.5" /> Cámara
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5 bg-orange-600 hover:bg-orange-700"
+                    onClick={handlePickFiles}
+                    disabled={evidencia.length >= 3}
+                  >
+                    <Upload className="size-3.5" /> Subir desde galería
+                  </Button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  hidden
+                  onChange={handleFilesChange}
+                />
+              </div>
               {evidencia.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {evidencia.map((file, i) => (
-                    <span
+                  {evidencia.map((b64, i) => (
+                    <div
                       key={i}
-                      className="inline-flex items-center gap-2 rounded-full bg-orange-50 border border-orange-200 px-3 py-1 text-xs font-semibold text-orange-700"
+                      className="relative size-20 overflow-hidden rounded-lg border border-orange-200 bg-orange-50"
                     >
-                      {file}
+                      <img
+                        src={b64}
+                        alt={`Evidencia ${i + 1}`}
+                        className="size-full object-cover"
+                      />
                       <button
                         type="button"
-                        aria-label={`Quitar ${file}`}
-                        onClick={() => setEvidencia((e) => e.filter((_, x) => x !== i))}
+                        aria-label={`Quitar evidencia ${i + 1}`}
+                        onClick={() =>
+                          setEvidencia((e) => e.filter((_, x) => x !== i))
+                        }
+                        className="absolute right-1 top-1 inline-flex size-5 items-center justify-center rounded-full bg-black/60 text-white"
                       >
                         <X className="size-3" />
                       </button>
-                    </span>
+                    </div>
                   ))}
                 </div>
               )}
@@ -285,6 +346,17 @@ export function MultasScreen() {
           </div>
         </div>
       </div>
+
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={(b64) =>
+          setEvidencia((prev) => (prev.length >= 3 ? prev : [...prev, b64]))
+        }
+        title="Evidencia fotográfica"
+        hint="Captura el vehículo, la placa o la situación de la infracción."
+        facingMode="environment"
+      />
     </div>
   )
 }

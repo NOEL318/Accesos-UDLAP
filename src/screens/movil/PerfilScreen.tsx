@@ -1,18 +1,32 @@
 import { useNavigate } from "react-router-dom"
-import { ArrowLeft, LogOut, ChevronRight, Camera } from "lucide-react"
+import { ArrowLeft, LogOut, ChevronRight, Camera, Image } from "lucide-react"
 import { useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { BottomNav } from "./BottomNav"
 import { useAuth } from "@/lib/auth-store"
 import { usePerfil } from "./hooks/usePerfil"
+import { CameraCapture } from "@/components/CameraCapture"
 
 // pantalla de perfil del usuario con avatar, datos basicos y boton de cerrar sesion
 export function PerfilScreen() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
-  const { changeAvatar, saving, error } = usePerfil()
+  const { changeAvatar, changeAvatarBase64, saving, error } = usePerfil()
   const fileRef = useRef<HTMLInputElement>(null)
   const [localError, setLocalError] = useState<string | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
 
   // cierra sesion y regresa al login
   const handleLogout = async () => {
@@ -103,16 +117,46 @@ export function PerfilScreen() {
               {user.role === "estudiante" ? "Estudiante Licenciatura" : user.role}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={saving}
-            className="shrink-0 flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl disabled:opacity-50"
-            style={{ background: "#fff3ee", color: "#ea580c" }}
-          >
-            <Camera className="size-3.5" />
-            {saving ? "Subiendo…" : "Cambiar foto"}
-          </button>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((v) => !v)}
+              disabled={saving}
+              className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl disabled:opacity-50"
+              style={{ background: "#fff3ee", color: "#ea580c" }}
+            >
+              <Camera className="size-3.5" />
+              {saving ? "Subiendo…" : "Cambiar foto"}
+            </button>
+            {menuOpen && (
+              <div
+                className="absolute right-0 z-30 mt-2 w-44 overflow-hidden rounded-xl border border-orange-100 bg-white shadow-lg"
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    setCameraOpen(true)
+                  }}
+                  className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-bold text-gray-700 hover:bg-orange-50"
+                >
+                  <Camera className="size-3.5 text-orange-600" />
+                  Tomar selfie
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    fileRef.current?.click()
+                  }}
+                  className="flex w-full items-center gap-2 border-t border-orange-50 px-3 py-2 text-left text-xs font-bold text-gray-700 hover:bg-orange-50"
+                >
+                  <Image className="size-3.5 text-orange-600" />
+                  Subir desde galería
+                </button>
+              </div>
+            )}
+          </div>
           <input
             ref={fileRef}
             type="file"
@@ -145,19 +189,22 @@ export function PerfilScreen() {
 
           {/* Change password */}
           <div className="px-5 py-3.5 border-t border-orange-100">
-            <button
+            <a
+              href="https://inscripciones.udlap.mx/DesbloqueoCuenta"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-sm font-bold flex items-center gap-1"
               style={{ color: "#ea580c" }}
             >
               Cambiar contraseña
               <ChevronRight className="size-3.5" />
-            </button>
+            </a>
           </div>
         </div>
 
         {/* Logout */}
         <Button
-          onClick={handleLogout}
+          onClick={() => setConfirmLogout(true)}
           className="w-full h-13 rounded-2xl text-white font-bold text-base gap-3"
           style={{
             background: "linear-gradient(135deg,#ea580c,#c2410c)",
@@ -170,8 +217,51 @@ export function PerfilScreen() {
         </Button>
       </div>
 
+      <AlertDialog
+        open={confirmLogout}
+        onOpenChange={setConfirmLogout}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de cerrar sesión?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tendrás que volver a iniciar sesión con tus credenciales institucionales.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmLogout(false)
+                void handleLogout()
+              }}
+            >
+              Cerrar sesión
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="h-[68px]" />
       <BottomNav />
+
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={async (b64) => {
+          setLocalError(null)
+          try {
+            await changeAvatarBase64(b64)
+          } catch (e) {
+            setLocalError(e instanceof Error ? e.message : "Error al subir avatar")
+          }
+        }}
+        title="Tomar selfie"
+        hint="Encuadra tu rostro y captura la foto."
+        facingMode="user"
+        maxKB={250}
+        maxPx={512}
+      />
     </div>
   )
 }

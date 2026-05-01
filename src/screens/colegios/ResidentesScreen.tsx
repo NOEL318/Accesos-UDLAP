@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   Search,
@@ -7,11 +7,15 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Camera,
+  X,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -22,18 +26,21 @@ import {
 import { cn } from "@/lib/utils"
 import { useColegiosData } from "./context/ColegiosDataContext"
 import { EstadoResidenteBadge } from "./components/EstadoBadge"
-import type { EstadoResidente } from "./types"
+import type { EstadoResidente, Residente } from "./types"
+import { CameraCapture } from "@/components/CameraCapture"
+import { ApiError } from "@/lib/api"
 
 type EstadoFilter = "todos" | EstadoResidente
 const PAGE_SIZE = 4
 
 // pantalla con el listado paginado de residentes con filtros por edificio y estado
 export function ResidentesScreen() {
-  const { residentes } = useColegiosData()
+  const { residentes, reportarIncidente } = useColegiosData()
   const [query, setQuery] = useState("")
   const [edificio, setEdificio] = useState<string>("todos")
   const [estado, setEstado] = useState<EstadoFilter>("todos")
   const [page, setPage] = useState(1)
+  const [reporting, setReporting] = useState<Residente | null>(null)
 
   // filtra residentes por búsqueda libre, edificio y estado seleccionado
   const filtered = useMemo(() => {
@@ -71,7 +78,14 @@ export function ResidentesScreen() {
             Gestión y monitoreo de estudiantes en campus universitario
           </p>
         </div>
-        <Button className="bg-orange-600 hover:bg-orange-700 gap-2">
+        <Button
+          onClick={() =>
+            alert(
+              "Alta de residentes se gestiona desde Servicios Escolares. Contacta al administrador."
+            )
+          }
+          className="bg-orange-600 hover:bg-orange-700 gap-2"
+        >
           <UserPlus className="size-4" />
           Nuevo Residente
         </Button>
@@ -197,6 +211,8 @@ export function ResidentesScreen() {
                         <Eye className="size-4" />
                       </Link>
                       <button
+                        type="button"
+                        onClick={() => setReporting(r)}
                         className="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-amber-50 hover:text-amber-600"
                         aria-label="Reportar incidente"
                       >
@@ -252,6 +268,208 @@ export function ResidentesScreen() {
           </div>
         </div>
       </Card>
+
+      {reporting && (
+        <ReportarIncidenteModal
+          residente={reporting}
+          onClose={() => setReporting(null)}
+          onSubmit={async (payload) => {
+            await reportarIncidente({
+              residenteStudentId: reporting.id,
+              edificioId: reporting.edificioId,
+              ...payload,
+            })
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+interface ReportarProps {
+  residente: Residente
+  onClose: () => void
+  onSubmit(payload: {
+    descripcion: string
+    severidad: "critica" | "alta" | "moderada" | "media" | "info"
+    tipo: "ebriedad" | "items_prohibidos" | "incidente" | "ronda"
+    fotoEvidencia?: string
+  }): Promise<void>
+}
+
+// modal para reportar un incidente sobre un residente con foto opcional
+function ReportarIncidenteModal({ residente, onClose, onSubmit }: ReportarProps) {
+  const [descripcion, setDescripcion] = useState("")
+  const [tipo, setTipo] =
+    useState<"ebriedad" | "items_prohibidos" | "incidente" | "ronda">("incidente")
+  const [severidad, setSeveridad] =
+    useState<"critica" | "alta" | "moderada" | "media" | "info">("moderada")
+  const [evidencia, setEvidencia] = useState<string | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const lastFocus = useRef<HTMLTextAreaElement>(null)
+
+  // envia el incidente al backend, cierra el modal en exito y muestra error si falla
+  async function handleSubmit() {
+    if (descripcion.trim().length < 5) {
+      setError("Describe brevemente el incidente.")
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    try {
+      await onSubmit({
+        descripcion: descripcion.trim(),
+        tipo,
+        severidad,
+        fotoEvidencia: evidencia ?? undefined,
+      })
+      onClose()
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudo registrar el incidente")
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div>
+            <div className="text-base font-black tracking-tight">Reportar incidente</div>
+            <div className="text-xs text-muted-foreground">
+              Sobre {residente.nombre} (ID {residente.id})
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100"
+            aria-label="Cerrar"
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+
+        <div className="space-y-4 px-5 py-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Tipo
+              </Label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as typeof tipo)}>
+                <SelectTrigger className="mt-1 h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="incidente">Incidente</SelectItem>
+                  <SelectItem value="ebriedad">Ebriedad</SelectItem>
+                  <SelectItem value="items_prohibidos">Ítems prohibidos</SelectItem>
+                  <SelectItem value="ronda">Ronda</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Severidad
+              </Label>
+              <Select
+                value={severidad}
+                onValueChange={(v) => setSeveridad(v as typeof severidad)}
+              >
+                <SelectTrigger className="mt-1 h-11">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="critica">Crítica</SelectItem>
+                  <SelectItem value="alta">Alta</SelectItem>
+                  <SelectItem value="moderada">Moderada</SelectItem>
+                  <SelectItem value="info">Informativa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Descripción
+            </Label>
+            <Textarea
+              ref={lastFocus}
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder="Describe lo ocurrido…"
+              className="mt-1 min-h-24"
+            />
+          </div>
+
+          <div>
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Foto de evidencia (opcional)
+            </Label>
+            <button
+              type="button"
+              onClick={() => setCameraOpen(true)}
+              className={cn(
+                "mt-1 flex w-full items-center justify-between rounded-xl border-2 border-dashed px-4 py-3 text-sm transition-colors",
+                evidencia
+                  ? "border-emerald-300 bg-emerald-50/50 text-emerald-700"
+                  : "border-slate-200 bg-slate-50 hover:border-orange-300 hover:bg-orange-50/40"
+              )}
+            >
+              <span className="flex items-center gap-2 font-semibold">
+                <Camera className="size-4" />
+                {evidencia ? "Evidencia capturada" : "Tomar foto con cámara"}
+              </span>
+              {evidencia && (
+                <img
+                  src={evidencia}
+                  alt="evidencia"
+                  className="size-12 rounded-md object-cover"
+                />
+              )}
+            </button>
+          </div>
+
+          {error && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-3">
+          <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
+            Cancelar
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="gap-2 bg-orange-600 hover:bg-orange-700"
+          >
+            <AlertTriangle className="size-4" />
+            {submitting ? "Registrando…" : "Reportar"}
+          </Button>
+        </div>
+      </div>
+
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={(b64) => setEvidencia(b64)}
+        title="Evidencia del incidente"
+        hint="Toma una foto que respalde el reporte."
+      />
     </div>
   )
 }

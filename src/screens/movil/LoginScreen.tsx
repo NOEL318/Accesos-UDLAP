@@ -107,16 +107,15 @@ export function LoginScreen() {
             </button>
           </div>
           <div className="flex justify-end">
-            <button
-              type="button"
+            <a
+              href="https://inscripciones.udlap.mx/DesbloqueoCuenta"
+              target="_blank"
+              rel="noopener noreferrer"
               className="text-xs font-semibold"
               style={{ color: "#ea580c" }}
-              onClick={() =>
-                alert("Contacta al administrador. La recuperación no está habilitada en demo.")
-              }
             >
               ¿Olvidaste tu contraseña?
-            </button>
+            </a>
           </div>
         </div>
 

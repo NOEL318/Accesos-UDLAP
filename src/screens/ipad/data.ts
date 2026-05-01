@@ -301,7 +301,7 @@ export const alertasSeed: Alerta[] = [
     id: "al2",
     tipo: "incidente",
     severidad: "moderada",
-    descripcion: "Objetos perdidos en Biblioteca",
+    descripcion: "Objetos perdidos en zona deportiva",
     timestamp: "2026-04-21T14:05:00Z",
     estado: "activa",
   },

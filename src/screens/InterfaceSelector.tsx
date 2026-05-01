@@ -27,7 +27,7 @@ const interfaces = [
     id: "movil",
     title: "Móvil",
     subtitle: "App Estudiantil",
-    description: "Dashboard · Visitas · QR Personal · Horario · Perfil",
+    description: "Dashboard · Visitas · QR Personal · Perfil",
     Icon: Smartphone,
     path: "/movil",
     available: true,

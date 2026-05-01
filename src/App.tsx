@@ -20,10 +20,7 @@ import { QrNfcScreen } from "@/screens/movil/QrNfcScreen"
 import { VisitasScreen } from "@/screens/movil/VisitasScreen"
 import { NuevaVisitaScreen } from "@/screens/movil/NuevaVisitaScreen"
 import { DetallesVisitaScreen } from "@/screens/movil/DetallesVisitaScreen"
-import { HorarioScreen } from "@/screens/movil/HorarioScreen"
 import { PerfilScreen } from "@/screens/movil/PerfilScreen"
-import { ComedorScreen } from "@/screens/movil/ComedorScreen"
-import { BibliotecaScreen } from "@/screens/movil/BibliotecaScreen"
 
 // ── iPad screens ───────────────────────────────────────────────────────────
 import { IpadLayout } from "@/screens/ipad/IpadLayout"
@@ -99,10 +96,7 @@ export function App() {
         <Route path="visitas" element={<VisitasScreen />} />
         <Route path="visitas/nueva" element={<NuevaVisitaScreen />} />
         <Route path="visitas/:id" element={<DetallesVisitaScreen />} />
-        <Route path="horario" element={<HorarioScreen />} />
         <Route path="perfil" element={<PerfilScreen />} />
-        <Route path="comedor" element={<ComedorScreen />} />
-        <Route path="biblioteca" element={<BibliotecaScreen />} />
       </Route>
 
       {/* ── iPad Seguridad ──────────────────────────── */}

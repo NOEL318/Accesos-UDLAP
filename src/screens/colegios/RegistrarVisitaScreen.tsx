@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Siren,
   MapPin,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -28,6 +29,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { useColegiosData } from "./context/ColegiosDataContext"
 import type { CategoriaVisita, TipoAcceso } from "./types"
+import { CameraCapture } from "@/components/CameraCapture"
+import { ApiError } from "@/lib/api"
 
 // pantalla para registrar una nueva visita al campus residencial
 export function RegistrarVisitaScreen() {
@@ -37,31 +40,42 @@ export function RegistrarVisitaScreen() {
   const [categoria, setCategoria] = useState<CategoriaVisita>("servicio")
   const [nombre, setNombre] = useState("")
   const [fechaHora, setFechaHora] = useState("")
-  const [edificioId, setEdificioId] = useState(edificios[0].id)
+  const [edificioId, setEdificioId] = useState(edificios[0]?.id ?? "")
   const [multiple, setMultiple] = useState(false)
   const [tipoAcceso, setTipoAcceso] = useState<TipoAcceso>("vehicular")
   const [comentarios, setComentarios] = useState("")
   const [foto, setFoto] = useState<string | null>(null)
+  const [cameraOpen, setCameraOpen] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const canSubmit = nombre.trim().length > 2
+  const canSubmit = nombre.trim().length > 2 && edificioId
 
   // arma el payload de la visita y la registra antes de ir a la pantalla de éxito
-  function submit() {
+  async function submit() {
     if (!canSubmit) return
-    registrarVisita({
-      nombreCompleto: nombre.trim(),
-      categoria,
-      tipoAcceso,
-      edificioDestinoId: edificioId,
-      fechaHora: fechaHora || new Date().toISOString(),
-      multipleEntrada: multiple,
-      comentarios,
-      foto: foto ?? undefined,
-      tipoId: "INE / Credencial Oficial",
-      estatusVisitante: "sin_antecedentes",
-      ubicacionEntrada: "Puerta Principal Sur",
-    })
-    navigate("/colegios/visitas/exitoso")
+    setSubmitting(true)
+    setError(null)
+    try {
+      await registrarVisita({
+        nombreCompleto: nombre.trim(),
+        categoria,
+        tipoAcceso,
+        edificioDestinoId: edificioId,
+        fechaHora: fechaHora ? new Date(fechaHora).toISOString() : new Date().toISOString(),
+        multipleEntrada: multiple,
+        comentarios,
+        foto: foto ?? undefined,
+        tipoId: "INE / Credencial Oficial",
+        estatusVisitante: "sin_antecedentes",
+        ubicacionEntrada: "Puerta Principal Sur",
+      })
+      navigate("/colegios/visitas/exitoso")
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : "No se pudo registrar la visita")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -185,14 +199,20 @@ export function RegistrarVisitaScreen() {
                 />
               </Field>
 
+              {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
+
               <Button
                 size="lg"
-                disabled={!canSubmit}
+                disabled={!canSubmit || submitting}
                 onClick={submit}
                 className="h-14 w-full gap-2 bg-orange-600 text-base font-bold hover:bg-orange-700"
               >
                 <CheckCircle2 className="size-5" />
-                Confirmar Registro de Acceso
+                {submitting ? "Registrando…" : "Confirmar Registro de Acceso"}
               </Button>
             </div>
           </CardContent>
@@ -202,9 +222,10 @@ export function RegistrarVisitaScreen() {
         <div className="space-y-4">
           <SidePanel title="Captura de Datos">
             <button
-              onClick={() => setFoto(`https://i.pravatar.cc/300?u=${Date.now()}`)}
+              type="button"
+              onClick={() => setCameraOpen(true)}
               className={cn(
-                "group flex aspect-[4/5] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all",
+                "group flex aspect-[4/5] w-full flex-col items-center justify-center rounded-xl border-2 border-dashed transition-all overflow-hidden",
                 foto
                   ? "border-emerald-400 bg-emerald-50/30"
                   : "border-slate-200 bg-slate-50 hover:border-orange-300 hover:bg-orange-50/40"
@@ -214,7 +235,7 @@ export function RegistrarVisitaScreen() {
                 <img
                   src={foto}
                   alt="Visitante"
-                  className="size-full rounded-xl object-cover"
+                  className="size-full object-cover"
                 />
               ) : (
                 <>
@@ -225,6 +246,16 @@ export function RegistrarVisitaScreen() {
                 </>
               )}
             </button>
+            {foto && (
+              <button
+                type="button"
+                onClick={() => setCameraOpen(true)}
+                className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-orange-600 hover:underline"
+              >
+                <RefreshCw className="size-3" />
+                Repetir foto
+              </button>
+            )}
           </SidePanel>
 
           <SidePanel title="Identificación">
@@ -284,6 +315,11 @@ export function RegistrarVisitaScreen() {
 
           <Button
             variant="outline"
+            onClick={() =>
+              alert(
+                "Botón de pánico activado. Notificación enviada a Caseta Principal y oficial de turno."
+              )
+            }
             className="w-full border-2 border-red-200 bg-red-50/40 py-6 text-red-600 hover:bg-red-50"
           >
             <Siren className="size-4" />
@@ -291,6 +327,15 @@ export function RegistrarVisitaScreen() {
           </Button>
         </div>
       </div>
+
+      <CameraCapture
+        open={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCapture={(b64) => setFoto(b64)}
+        title="Foto del visitante"
+        hint="Encuadra el rostro del visitante para registrarlo en la bitácora."
+        facingMode="environment"
+      />
     </div>
   )
 }
